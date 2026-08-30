@@ -1,0 +1,10 @@
+node_modules
+dist
+.vite
+.DS_Store
+npm-debug.log*
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
