@@ -5,6 +5,7 @@ import { LoginForm } from '../features/auth';
 import { DashboardPage } from '../features/dashboard';
 import { StudentsPage } from '../features/students';
 import { ClassesPage } from '../features/classes';
+import { AttendancePage } from '../features/attendance';
 import { useAuthStore } from '../store/authStore';
 
 function LoginRoute() {
@@ -28,6 +29,7 @@ function AppRoutes() {
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="students" element={<StudentsPage />} />
           <Route path="classes" element={<ClassesPage />} />
+          <Route path="attendance" element={<AttendancePage />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/login" replace />} />
