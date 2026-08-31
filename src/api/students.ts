@@ -69,6 +69,25 @@ export async function createStudent(input: CreateStudentInput): Promise<Student>
   }
 }
 
+export type UpdateStudentInput = {
+  fullName: string;
+  guardianName?: string | null;
+  guardianContact?: string | null;
+  status: StudentStatus;
+};
+
+/** Edit a student's mutable fields. admission_number is immutable server-side and not sent. */
+export async function updateStudent(id: string, input: UpdateStudentInput): Promise<Student> {
+  const { data } = await api.put<Student>(`/v1/students/${id}`, input);
+  return data;
+}
+
+/** Deactivate (soft delete) or reactivate a student. No row is removed. */
+export async function changeStudentStatus(id: string, status: StudentStatus): Promise<Student> {
+  const { data } = await api.patch<Student>(`/v1/students/${id}/status`, { status });
+  return data;
+}
+
 export type SchoolOption = {
   id: string;
   name: string;

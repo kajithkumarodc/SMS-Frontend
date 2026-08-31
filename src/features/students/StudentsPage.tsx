@@ -1,10 +1,17 @@
 import { useState } from 'react';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import {
   Alert,
+  App,
   Button,
   Card,
   Empty,
+  Popconfirm,
   Skeleton,
   Space,
   Table,
@@ -13,12 +20,18 @@ import {
   theme,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
-import { fetchStudents, type Student } from '../../api/students';
+import { EditOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
+import {
+  changeStudentStatus,
+  fetchStudents,
+  type Student,
+  type StudentStatus,
+} from '../../api/students';
 import { useAuthStore } from '../../store/authStore';
 import { hasRole, ROLE } from '../../lib/roles';
 import { STUDENTS_QUERY_KEY } from './queryKeys';
 import AddStudentModal from './AddStudentModal';
+import EditStudentModal from './EditStudentModal';
 
 const { Title, Text } = Typography;
 
@@ -31,17 +44,36 @@ const STATUS_COLOR: Record<string, string> = {
 
 function StudentsPage() {
   const { token } = theme.useToken();
+  const { message } = App.useApp();
+  const queryClient = useQueryClient();
   const roles = useAuthStore((state) => state.user?.roles);
-  const canAddStudent = hasRole(roles, ROLE.SCHOOL_ADMIN);
+  const canManageStudents = hasRole(roles, ROLE.SCHOOL_ADMIN);
 
   const [page, setPage] = useState(1); // 1-based for the Table; the API is 0-based
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [addOpen, setAddOpen] = useState(false);
+  const [editing, setEditing] = useState<Student | null>(null);
 
   const { data, isPending, isError, isFetching, refetch } = useQuery({
     queryKey: [...STUDENTS_QUERY_KEY, { page, pageSize }],
     queryFn: () => fetchStudents({ page: page - 1, size: pageSize }),
     placeholderData: keepPreviousData,
+  });
+
+  const statusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: StudentStatus; name: string }) =>
+      changeStudentStatus(id, status),
+    onSuccess: (_result, variables) => {
+      message.success(
+        variables.status === 'INACTIVE'
+          ? `${variables.name} deactivated`
+          : `${variables.name} reactivated`,
+      );
+      void queryClient.invalidateQueries({ queryKey: STUDENTS_QUERY_KEY });
+    },
+    onError: () => {
+      message.error('Could not change the student status. Please try again.');
+    },
   });
 
   const students = data?.content ?? [];
@@ -78,6 +110,56 @@ function StudentsPage() {
     },
   ];
 
+  if (canManageStudents) {
+    columns.push({
+      title: 'Actions',
+      key: 'actions',
+      width: 200,
+      render: (_value, record) => {
+        const deactivating = record.status === 'ACTIVE';
+        const nextStatus: StudentStatus = deactivating ? 'INACTIVE' : 'ACTIVE';
+        const pending =
+          statusMutation.isPending && statusMutation.variables?.id === record.id;
+
+        return (
+          <Space size="small">
+            <Button
+              type="link"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => setEditing(record)}
+              style={{ paddingInline: 0 }}
+            >
+              Edit
+            </Button>
+            <Popconfirm
+              title={deactivating ? 'Deactivate this student?' : 'Reactivate this student?'}
+              description={
+                deactivating
+                  ? 'They stay in the records with an INACTIVE status.'
+                  : 'They will be marked ACTIVE again.'
+              }
+              okText={deactivating ? 'Deactivate' : 'Reactivate'}
+              cancelText="Cancel"
+              okButtonProps={{ danger: deactivating }}
+              onConfirm={() =>
+                statusMutation.mutate({
+                  id: record.id,
+                  status: nextStatus,
+                  name: record.fullName,
+                })
+              }
+            >
+              <Button type="link" size="small" danger={deactivating} loading={pending} style={{ paddingInline: 0 }}>
+                {deactivating ? 'Deactivate' : 'Reactivate'}
+              </Button>
+            </Popconfirm>
+          </Space>
+        );
+      },
+    });
+  }
+
   return (
     <div style={{ maxWidth: 1040, width: '100%', margin: '0 auto' }}>
       <header
@@ -106,7 +188,7 @@ function StudentsPage() {
           >
             Refresh
           </Button>
-          {canAddStudent && (
+          {canManageStudents && (
             <Button type="primary" icon={<PlusOutlined />} onClick={() => setAddOpen(true)}>
               Add student
             </Button>
@@ -163,7 +245,12 @@ function StudentsPage() {
         )}
       </Card>
 
-      {canAddStudent && <AddStudentModal open={addOpen} onClose={() => setAddOpen(false)} />}
+      {canManageStudents && (
+        <>
+          <AddStudentModal open={addOpen} onClose={() => setAddOpen(false)} />
+          <EditStudentModal student={editing} onClose={() => setEditing(null)} />
+        </>
+      )}
     </div>
   );
 }
