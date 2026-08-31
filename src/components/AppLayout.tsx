@@ -8,7 +8,9 @@ import {
   CheckSquareOutlined,
   DashboardOutlined,
   LogoutOutlined,
+  ProfileOutlined,
   TeamOutlined,
+  TrophyOutlined,
 } from '@ant-design/icons';
 import { logout as logoutRequest } from '../api/auth';
 import { useAuthStore } from '../store/authStore';
@@ -57,6 +59,12 @@ function AppLayout() {
         visible: hasAnyRole(user?.roles, [ROLE.SCHOOL_ADMIN, ROLE.TEACHER]),
       },
       {
+        key: '/app/exams',
+        label: 'Exams',
+        icon: <ProfileOutlined />,
+        visible: hasAnyRole(user?.roles, [ROLE.SCHOOL_ADMIN, ROLE.TEACHER]),
+      },
+      {
         key: '/app/classes',
         label: 'Classes',
         icon: <ApartmentOutlined />,
@@ -66,6 +74,12 @@ function AppLayout() {
         key: '/app/my-attendance',
         label: 'My Attendance',
         icon: <CalendarOutlined />,
+        visible: hasRole(user?.roles, ROLE.STUDENT),
+      },
+      {
+        key: '/app/my-results',
+        label: 'My Results',
+        icon: <TrophyOutlined />,
         visible: hasRole(user?.roles, ROLE.STUDENT),
       },
     ],

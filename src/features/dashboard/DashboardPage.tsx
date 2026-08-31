@@ -218,6 +218,18 @@ function StudentDashboard({
           </Col>
         </Row>
       </Card>
+
+      <Card
+        style={{ boxShadow: token.boxShadowTertiary }}
+        title="Exam results"
+        extra={
+          <Link to="/app/my-results">
+            View my results <RightOutlined />
+          </Link>
+        }
+      >
+        <Text type="secondary">Your marks across all exams.</Text>
+      </Card>
     </Space>
   );
 }
@@ -294,8 +306,11 @@ function ChildrenList({
             <Card
               style={{ height: '100%', boxShadow: token.boxShadowTertiary }}
               actions={[
-                <Link key="view" to={`/app/children/${child.id}/attendance`}>
-                  View attendance <RightOutlined />
+                <Link key="attendance" to={`/app/children/${child.id}/attendance`}>
+                  Attendance <RightOutlined />
+                </Link>,
+                <Link key="results" to={`/app/children/${child.id}/results`}>
+                  Results <RightOutlined />
                 </Link>,
               ]}
             >

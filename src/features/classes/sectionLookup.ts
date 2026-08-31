@@ -3,10 +3,11 @@ import type { SchoolClass } from '../../api/classes';
 export type SectionInfo = {
   sectionId: string;
   sectionName: string;
+  classId: string;
   className: string;
 };
 
-/** sectionId -> readable names, for showing a student's section. */
+/** sectionId -> readable names + owning classId, for showing / resolving a student's section. */
 export function buildSectionLookup(classes: SchoolClass[] | undefined): Map<string, SectionInfo> {
   const lookup = new Map<string, SectionInfo>();
   for (const cls of classes ?? []) {
@@ -14,6 +15,7 @@ export function buildSectionLookup(classes: SchoolClass[] | undefined): Map<stri
       lookup.set(section.id, {
         sectionId: section.id,
         sectionName: section.name,
+        classId: cls.id,
         className: cls.name,
       });
     }

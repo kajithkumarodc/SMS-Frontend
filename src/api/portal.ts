@@ -1,6 +1,7 @@
 import { AxiosError } from 'axios';
 import api from '../lib/api';
 import type { AttendanceStatus } from './attendance';
+import type { StudentExamResult } from './exams';
 
 export type PortalStudent = {
   id: string;
@@ -81,6 +82,28 @@ export async function fetchChildAttendance(studentId: string): Promise<PortalAtt
       { params: { size: 200 } },
     );
     return data.content;
+  } catch (error) {
+    if (is404(error)) throw new ChildNotFoundError();
+    throw error;
+  }
+}
+
+/** STUDENT: the caller's own exam results. Ownership-scoped — resolved from the caller's own login. */
+export async function fetchMyExamResults(): Promise<StudentExamResult[]> {
+  try {
+    const { data } = await api.get<StudentExamResult[]>('/v1/me/student/results');
+    return data;
+  } catch (error) {
+    if (is404(error)) throw new NoLinkedStudentError();
+    throw error;
+  }
+}
+
+/** PARENT: one of the caller's own children's exam results. 404 (ChildNotFoundError) if not their child. */
+export async function fetchChildExamResults(studentId: string): Promise<StudentExamResult[]> {
+  try {
+    const { data } = await api.get<StudentExamResult[]>(`/v1/me/children/${studentId}/results`);
+    return data;
   } catch (error) {
     if (is404(error)) throw new ChildNotFoundError();
     throw error;
