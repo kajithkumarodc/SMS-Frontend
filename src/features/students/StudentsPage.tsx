@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   keepPreviousData,
   useMutation,
@@ -20,18 +20,22 @@ import {
   theme,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { EditOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
+import { ApartmentOutlined, EditOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import {
   changeStudentStatus,
   fetchStudents,
   type Student,
   type StudentStatus,
 } from '../../api/students';
+import { fetchClasses } from '../../api/classes';
 import { useAuthStore } from '../../store/authStore';
 import { hasRole, ROLE } from '../../lib/roles';
+import { CLASSES_QUERY_KEY } from '../classes/queryKeys';
+import { buildSectionLookup } from '../classes/sectionLookup';
 import { STUDENTS_QUERY_KEY } from './queryKeys';
 import AddStudentModal from './AddStudentModal';
 import EditStudentModal from './EditStudentModal';
+import AssignSectionModal from './AssignSectionModal';
 
 const { Title, Text } = Typography;
 
@@ -53,12 +57,20 @@ function StudentsPage() {
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<Student | null>(null);
+  const [assigning, setAssigning] = useState<Student | null>(null);
 
   const { data, isPending, isError, isFetching, refetch } = useQuery({
     queryKey: [...STUDENTS_QUERY_KEY, { page, pageSize }],
     queryFn: () => fetchStudents({ page: page - 1, size: pageSize }),
     placeholderData: keepPreviousData,
   });
+
+  // Used to resolve a student's sectionId to a readable "Class · Section" label.
+  const classesQuery = useQuery({ queryKey: CLASSES_QUERY_KEY, queryFn: fetchClasses });
+  const sectionLookup = useMemo(
+    () => buildSectionLookup(classesQuery.data),
+    [classesQuery.data],
+  );
 
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: StudentStatus; name: string }) =>
@@ -103,6 +115,18 @@ function StudentsPage() {
       ),
     },
     {
+      title: 'Section',
+      dataIndex: 'sectionId',
+      key: 'section',
+      render: (sectionId: string | null) => {
+        const info = sectionId ? sectionLookup.get(sectionId) : undefined;
+        if (info) {
+          return `${info.className} · ${info.sectionName}`;
+        }
+        return <Text type="secondary">Unassigned</Text>;
+      },
+    },
+    {
       title: 'Guardian name',
       dataIndex: 'guardianName',
       key: 'guardianName',
@@ -114,7 +138,7 @@ function StudentsPage() {
     columns.push({
       title: 'Actions',
       key: 'actions',
-      width: 200,
+      width: 280,
       render: (_value, record) => {
         const deactivating = record.status === 'ACTIVE';
         const nextStatus: StudentStatus = deactivating ? 'INACTIVE' : 'ACTIVE';
@@ -122,7 +146,7 @@ function StudentsPage() {
           statusMutation.isPending && statusMutation.variables?.id === record.id;
 
         return (
-          <Space size="small">
+          <Space size="small" wrap>
             <Button
               type="link"
               size="small"
@@ -131,6 +155,15 @@ function StudentsPage() {
               style={{ paddingInline: 0 }}
             >
               Edit
+            </Button>
+            <Button
+              type="link"
+              size="small"
+              icon={<ApartmentOutlined />}
+              onClick={() => setAssigning(record)}
+              style={{ paddingInline: 0 }}
+            >
+              Assign section
             </Button>
             <Popconfirm
               title={deactivating ? 'Deactivate this student?' : 'Reactivate this student?'}
@@ -249,6 +282,7 @@ function StudentsPage() {
         <>
           <AddStudentModal open={addOpen} onClose={() => setAddOpen(false)} />
           <EditStudentModal student={editing} onClose={() => setEditing(null)} />
+          <AssignSectionModal student={assigning} onClose={() => setAssigning(null)} />
         </>
       )}
     </div>

@@ -12,6 +12,7 @@ export type Student = {
   guardianName: string | null;
   guardianContact: string | null;
   status: StudentStatus;
+  sectionId: string | null;
   createdAt: string;
 };
 
@@ -85,6 +86,12 @@ export async function updateStudent(id: string, input: UpdateStudentInput): Prom
 /** Deactivate (soft delete) or reactivate a student. No row is removed. */
 export async function changeStudentStatus(id: string, status: StudentStatus): Promise<Student> {
   const { data } = await api.patch<Student>(`/v1/students/${id}/status`, { status });
+  return data;
+}
+
+/** Assign / reassign a student to a section (SCHOOL_ADMIN only server-side). */
+export async function assignStudentSection(id: string, sectionId: string): Promise<Student> {
+  const { data } = await api.patch<Student>(`/v1/students/${id}/section`, { sectionId });
   return data;
 }
 

@@ -2,10 +2,10 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Button, Layout, Menu, Space, Typography, theme } from 'antd';
 import type { MenuProps } from 'antd';
-import { DashboardOutlined, LogoutOutlined, TeamOutlined } from '@ant-design/icons';
+import { ApartmentOutlined, DashboardOutlined, LogoutOutlined, TeamOutlined } from '@ant-design/icons';
 import { logout as logoutRequest } from '../api/auth';
 import { useAuthStore } from '../store/authStore';
-import { hasAnyRole, ROLE } from '../lib/roles';
+import { hasAnyRole, hasRole, ROLE } from '../lib/roles';
 
 const { Header, Content } = Layout;
 const { Text } = Typography;
@@ -42,6 +42,12 @@ function AppLayout() {
         label: 'Students',
         icon: <TeamOutlined />,
         visible: hasAnyRole(user?.roles, [ROLE.SCHOOL_ADMIN, ROLE.TEACHER]),
+      },
+      {
+        key: '/app/classes',
+        label: 'Classes',
+        icon: <ApartmentOutlined />,
+        visible: hasRole(user?.roles, ROLE.SCHOOL_ADMIN),
       },
     ],
     [user?.roles],
