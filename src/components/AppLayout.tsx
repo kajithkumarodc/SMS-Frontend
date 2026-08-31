@@ -4,6 +4,7 @@ import { Button, Layout, Menu, Space, Typography, theme } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   ApartmentOutlined,
+  CalendarOutlined,
   CheckSquareOutlined,
   DashboardOutlined,
   LogoutOutlined,
@@ -60,6 +61,12 @@ function AppLayout() {
         label: 'Classes',
         icon: <ApartmentOutlined />,
         visible: hasRole(user?.roles, ROLE.SCHOOL_ADMIN),
+      },
+      {
+        key: '/app/my-attendance',
+        label: 'My Attendance',
+        icon: <CalendarOutlined />,
+        visible: hasRole(user?.roles, ROLE.STUDENT),
       },
     ],
     [user?.roles],

@@ -1,8 +1,27 @@
-import type { ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Card, Col, Result, Row, Space, Statistic, Tag, Typography, theme } from 'antd';
-import { BankOutlined, ReloadOutlined, TeamOutlined } from '@ant-design/icons';
-import { fetchDashboardSummary } from '../../api/dashboard';
+import {
+  Button,
+  Card,
+  Col,
+  Result,
+  Row,
+  Space,
+  Statistic,
+  Tag,
+  Typography,
+  theme,
+} from 'antd';
+import { BankOutlined, ReloadOutlined, RightOutlined, TeamOutlined } from '@ant-design/icons';
+import {
+  fetchDashboardSummary,
+  type DashboardAttendanceSummary,
+  type DashboardStudentInfo,
+} from '../../api/dashboard';
+import { fetchClasses } from '../../api/classes';
+import { CLASSES_QUERY_KEY } from '../classes/queryKeys';
+import { buildSectionLookup } from '../classes/sectionLookup';
 import { useAuthStore } from '../../store/authStore';
 
 const { Title, Text, Paragraph } = Typography;
@@ -26,6 +45,23 @@ function DashboardPage() {
     queryKey: ['dashboard', 'summary'],
     queryFn: fetchDashboardSummary,
   });
+
+  const isPortal = Boolean(data && (data.student || data.children));
+
+  const classesQuery = useQuery({
+    queryKey: CLASSES_QUERY_KEY,
+    queryFn: fetchClasses,
+    enabled: isPortal,
+  });
+  const sectionLookup = useMemo(
+    () => buildSectionLookup(classesQuery.data),
+    [classesQuery.data],
+  );
+  const sectionLabel = (sectionId: string | null): string => {
+    if (!sectionId) return 'Not assigned to a section';
+    const info = sectionLookup.get(sectionId);
+    return info ? `${info.className} · ${info.sectionName}` : 'Assigned';
+  };
 
   const greetingName = user?.name?.trim() || 'there';
   const roles = user?.roles ?? [];
@@ -75,6 +111,31 @@ function DashboardPage() {
         />
       )}
 
+      {data && data.student && (
+        <StudentDashboard
+          student={data.student}
+          attendance={data.attendance}
+          sectionLabel={sectionLabel(data.student.sectionId)}
+        />
+      )}
+
+      {data && data.children != null && (
+        data.children.length === 0 ? (
+          <Card style={{ boxShadow: token.boxShadowTertiary }}>
+            <Space direction="vertical" size={token.marginSM} style={{ maxWidth: 620 }}>
+              <Title level={4} style={{ margin: 0 }}>
+                No students linked yet
+              </Title>
+              <Paragraph type="secondary" style={{ margin: 0 }}>
+                No students are linked to your account yet — contact your school administrator.
+              </Paragraph>
+            </Space>
+          </Card>
+        ) : (
+          <ChildrenList students={data.children} sectionLabel={sectionLabel} />
+        )
+      )}
+
       {data && !data.placeholder && data.counts && (
         <Row gutter={[token.margin, token.margin]}>
           <Col xs={24} sm={12} lg={8}>
@@ -93,13 +154,168 @@ function DashboardPage() {
               You&rsquo;re all set, {greetingName}
             </Title>
             <Paragraph type="secondary" style={{ margin: 0 }}>
-              {data.note ??
-                'Your role-specific dashboard is being prepared. Check back soon.'}
+              {data.note ?? 'Your role-specific dashboard is being prepared. Check back soon.'}
             </Paragraph>
           </Space>
         </Card>
       )}
     </div>
+  );
+}
+
+function StudentDashboard({
+  student,
+  attendance,
+  sectionLabel,
+}: {
+  student: DashboardStudentInfo;
+  attendance: DashboardAttendanceSummary | null;
+  sectionLabel: string;
+}) {
+  const { token } = theme.useToken();
+  const tally = attendance ?? { present: 0, absent: 0, late: 0, total: 0 };
+
+  return (
+    <Space direction="vertical" size={token.margin} style={{ width: '100%' }}>
+      <Card style={{ boxShadow: token.boxShadowTertiary }}>
+        <Space direction="vertical" size={token.marginXS}>
+          <Title level={3} style={{ margin: 0 }}>
+            {student.fullName}
+          </Title>
+          <Space size={token.marginSM} wrap>
+            <Text type="secondary">Admission {student.admissionNumber}</Text>
+            <Text type="secondary">·</Text>
+            <Text type="secondary">{sectionLabel}</Text>
+            <Tag color={student.status === 'ACTIVE' ? 'success' : 'default'} style={{ marginInlineEnd: 0 }}>
+              {student.status}
+            </Tag>
+          </Space>
+        </Space>
+      </Card>
+
+      <Card
+        style={{ boxShadow: token.boxShadowTertiary }}
+        title="Attendance"
+        extra={
+          <Link to="/app/my-attendance">
+            View full history <RightOutlined />
+          </Link>
+        }
+      >
+        <ProportionBar tally={tally} />
+        <Row gutter={[token.margin, token.margin]} style={{ marginTop: token.marginMD }}>
+          <Col xs={12} sm={6}>
+            <AttendanceStat label="Present" value={tally.present} color={token.colorSuccess} />
+          </Col>
+          <Col xs={12} sm={6}>
+            <AttendanceStat label="Absent" value={tally.absent} color={token.colorError} />
+          </Col>
+          <Col xs={12} sm={6}>
+            <AttendanceStat label="Late" value={tally.late} color={token.colorWarning} />
+          </Col>
+          <Col xs={12} sm={6}>
+            <AttendanceStat label="Total marked" value={tally.total} color={token.colorTextTertiary} />
+          </Col>
+        </Row>
+      </Card>
+    </Space>
+  );
+}
+
+function ProportionBar({ tally }: { tally: DashboardAttendanceSummary }) {
+  const { token } = theme.useToken();
+
+  if (tally.total === 0) {
+    return (
+      <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
+        No attendance recorded yet.
+      </Text>
+    );
+  }
+
+  const segments = [
+    { value: tally.present, color: token.colorSuccess },
+    { value: tally.late, color: token.colorWarning },
+    { value: tally.absent, color: token.colorError },
+  ].filter((s) => s.value > 0);
+
+  return (
+    <div
+      role="img"
+      aria-label={`${tally.present} present, ${tally.late} late, ${tally.absent} absent`}
+      style={{
+        display: 'flex',
+        height: 10,
+        borderRadius: token.borderRadius,
+        overflow: 'hidden',
+        background: token.colorFillSecondary,
+      }}
+    >
+      {segments.map((s, i) => (
+        <div key={i} style={{ flex: s.value, background: s.color }} />
+      ))}
+    </div>
+  );
+}
+
+function AttendanceStat({ label, value, color }: { label: string; value: number; color: string }) {
+  const { token } = theme.useToken();
+  return (
+    <Space size={token.marginXS} align="center">
+      <span
+        aria-hidden
+        style={{ width: 10, height: 10, borderRadius: '50%', background: color, display: 'inline-block' }}
+      />
+      <Statistic
+        title={label}
+        value={value}
+        valueStyle={{ fontSize: token.fontSizeHeading3, fontWeight: token.fontWeightStrong, color: token.colorText }}
+      />
+    </Space>
+  );
+}
+
+function ChildrenList({
+  students,
+  sectionLabel,
+}: {
+  students: DashboardStudentInfo[];
+  sectionLabel: (sectionId: string | null) => string;
+}) {
+  const { token } = theme.useToken();
+  return (
+    <Space direction="vertical" size={token.marginXS} style={{ width: '100%' }}>
+      <Title level={4} style={{ margin: 0 }}>
+        My children
+      </Title>
+      <Row gutter={[token.margin, token.margin]}>
+        {students.map((child) => (
+          <Col key={child.id} xs={24} sm={12}>
+            <Card
+              style={{ height: '100%', boxShadow: token.boxShadowTertiary }}
+              actions={[
+                <Link key="view" to={`/app/children/${child.id}/attendance`}>
+                  View attendance <RightOutlined />
+                </Link>,
+              ]}
+            >
+              <Space direction="vertical" size={token.marginXXS}>
+                <Title level={5} style={{ margin: 0 }}>
+                  {child.fullName}
+                </Title>
+                <Text type="secondary">{sectionLabel(child.sectionId)}</Text>
+                <Tag
+                  color={child.status === 'ACTIVE' ? 'success' : 'default'}
+                  style={{ marginInlineEnd: 0, marginTop: token.marginXXS }}
+                >
+                  {child.status}
+                </Tag>
+              </Space>
+            </Card>
+          </Col>
+        ))}
+      </Row>
+    </Space>
   );
 }
 

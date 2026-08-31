@@ -2,6 +2,8 @@
 export const ROLE = {
   SCHOOL_ADMIN: 'SCHOOL_ADMIN',
   TEACHER: 'TEACHER',
+  STUDENT: 'STUDENT',
+  PARENT: 'PARENT',
 } as const;
 
 export type Role = (typeof ROLE)[keyof typeof ROLE];

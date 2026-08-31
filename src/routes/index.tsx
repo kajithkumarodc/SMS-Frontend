@@ -6,6 +6,7 @@ import { DashboardPage } from '../features/dashboard';
 import { StudentsPage } from '../features/students';
 import { ClassesPage } from '../features/classes';
 import { AttendancePage } from '../features/attendance';
+import { MyAttendancePage, ChildAttendancePage } from '../features/portal';
 import { useAuthStore } from '../store/authStore';
 
 function LoginRoute() {
@@ -30,6 +31,8 @@ function AppRoutes() {
           <Route path="students" element={<StudentsPage />} />
           <Route path="classes" element={<ClassesPage />} />
           <Route path="attendance" element={<AttendancePage />} />
+          <Route path="my-attendance" element={<MyAttendancePage />} />
+          <Route path="children/:studentId/attendance" element={<ChildAttendancePage />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/login" replace />} />
