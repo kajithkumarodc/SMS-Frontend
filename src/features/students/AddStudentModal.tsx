@@ -151,6 +151,7 @@ function AddStudentModal({ open, onClose }: Props) {
             >
               <Select
                 {...field}
+                data-testid="student-school-select"
                 placeholder="Select a school"
                 loading={schoolsQuery.isLoading}
                 options={schoolOptions}
@@ -171,7 +172,12 @@ function AddStudentModal({ open, onClose }: Props) {
               validateStatus={errors.fullName ? 'error' : undefined}
               help={errors.fullName?.message}
             >
-              <Input {...field} placeholder="e.g. Priya Sharma" autoComplete="off" />
+              <Input
+                {...field}
+                data-testid="student-fullname-input"
+                placeholder="e.g. Priya Sharma"
+                autoComplete="off"
+              />
             </Form.Item>
           )}
         />
@@ -186,7 +192,12 @@ function AddStudentModal({ open, onClose }: Props) {
               validateStatus={errors.admissionNumber ? 'error' : undefined}
               help={errors.admissionNumber?.message}
             >
-              <Input {...field} placeholder="e.g. ADM-2026-001" autoComplete="off" />
+              <Input
+                {...field}
+                data-testid="student-admission-input"
+                placeholder="e.g. ADM-2026-001"
+                autoComplete="off"
+              />
             </Form.Item>
           )}
         />

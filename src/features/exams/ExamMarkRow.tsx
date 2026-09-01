@@ -108,6 +108,7 @@ function ExamMarkRow({ student, examId, maxMarks, recordedMarks, onSaved }: Prop
 
       <Space size={4} align="baseline">
         <InputNumber
+          data-testid="exam-mark-input"
           value={value}
           min={0}
           max={maxMarks}

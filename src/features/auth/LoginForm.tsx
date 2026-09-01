@@ -125,6 +125,7 @@ function LoginForm() {
               >
                 <Input
                   {...field}
+                  data-testid="login-email"
                   size="large"
                   type="email"
                   autoComplete="email"
@@ -146,6 +147,7 @@ function LoginForm() {
               >
                 <Input.Password
                   {...field}
+                  data-testid="login-password"
                   size="large"
                   autoComplete="current-password"
                   prefix={<LockOutlined />}

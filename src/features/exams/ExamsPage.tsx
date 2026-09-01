@@ -108,6 +108,7 @@ function ExamsPage() {
               Section
             </Text>
             <Select
+              data-testid="exams-section-select"
               style={{ minWidth: 240 }}
               placeholder="Select a section"
               value={sectionId || undefined}

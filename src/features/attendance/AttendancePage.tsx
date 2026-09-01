@@ -31,7 +31,7 @@ const DATE_FORMAT = 'YYYY-MM-DD';
 function SummaryItem({ count, label, color }: { count: number; label: string; color: string }) {
   const { token } = theme.useToken();
   return (
-    <Space size={8} align="center">
+    <Space size={8} align="center" data-testid={`attendance-summary-${label.toLowerCase().replace(/\s+/g, '-')}`}>
       <span
         aria-hidden
         style={{ width: 10, height: 10, borderRadius: '50%', background: color, display: 'inline-block' }}
@@ -131,6 +131,7 @@ function AttendancePage() {
               Section
             </Text>
             <Select
+              data-testid="attendance-section-select"
               style={{ minWidth: 240 }}
               placeholder="Select a section"
               value={sectionId || undefined}

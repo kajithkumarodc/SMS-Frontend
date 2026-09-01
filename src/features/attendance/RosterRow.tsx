@@ -95,6 +95,7 @@ function RosterRow({ student, date, markedStatus, onMarked, onOpenHistory }: Pro
       </div>
 
       <Segmented
+        data-testid="roster-segmented"
         value={value}
         onChange={(next) => {
           const status = next as AttendanceStatus;

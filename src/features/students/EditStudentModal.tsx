@@ -104,7 +104,12 @@ function EditStudentModal({ student, onClose }: Props) {
               validateStatus={errors.fullName ? 'error' : undefined}
               help={errors.fullName?.message}
             >
-              <Input {...field} placeholder="e.g. Priya Sharma" autoComplete="off" />
+              <Input
+                {...field}
+                data-testid="student-fullname-input"
+                placeholder="e.g. Priya Sharma"
+                autoComplete="off"
+              />
             </Form.Item>
           )}
         />

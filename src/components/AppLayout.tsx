@@ -116,6 +116,7 @@ function AppLayout() {
           SCHOOL MANAGEMENT
         </Text>
         <Menu
+          data-testid="main-nav"
           mode="horizontal"
           selectedKeys={[selectedKey]}
           items={menuItems}

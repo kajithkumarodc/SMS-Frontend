@@ -1,6 +1,12 @@
 node_modules
 dist
 .vite
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
 .DS_Store
 npm-debug.log*
 .env
