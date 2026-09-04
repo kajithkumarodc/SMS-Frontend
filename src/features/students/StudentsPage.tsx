@@ -20,7 +20,13 @@ import {
   theme,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { ApartmentOutlined, EditOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
+import {
+  ApartmentOutlined,
+  EditOutlined,
+  FileTextOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+} from '@ant-design/icons';
 import {
   changeStudentStatus,
   fetchStudents,
@@ -36,6 +42,7 @@ import { STUDENTS_QUERY_KEY } from './queryKeys';
 import AddStudentModal from './AddStudentModal';
 import EditStudentModal from './EditStudentModal';
 import AssignSectionModal from './AssignSectionModal';
+import StudentInvoicesModal from '../fees/StudentInvoicesModal';
 
 const { Title, Text } = Typography;
 
@@ -58,6 +65,7 @@ function StudentsPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<Student | null>(null);
   const [assigning, setAssigning] = useState<Student | null>(null);
+  const [viewingInvoices, setViewingInvoices] = useState<Student | null>(null);
 
   const { data, isPending, isError, isFetching, refetch } = useQuery({
     queryKey: [...STUDENTS_QUERY_KEY, { page, pageSize }],
@@ -138,7 +146,7 @@ function StudentsPage() {
     columns.push({
       title: 'Actions',
       key: 'actions',
-      width: 280,
+      width: 380,
       render: (_value, record) => {
         const deactivating = record.status === 'ACTIVE';
         const nextStatus: StudentStatus = deactivating ? 'INACTIVE' : 'ACTIVE';
@@ -164,6 +172,15 @@ function StudentsPage() {
               style={{ paddingInline: 0 }}
             >
               Assign section
+            </Button>
+            <Button
+              type="link"
+              size="small"
+              icon={<FileTextOutlined />}
+              onClick={() => setViewingInvoices(record)}
+              style={{ paddingInline: 0 }}
+            >
+              Invoices
             </Button>
             <Popconfirm
               title={deactivating ? 'Deactivate this student?' : 'Reactivate this student?'}
@@ -283,6 +300,10 @@ function StudentsPage() {
           <AddStudentModal open={addOpen} onClose={() => setAddOpen(false)} />
           <EditStudentModal student={editing} onClose={() => setEditing(null)} />
           <AssignSectionModal student={assigning} onClose={() => setAssigning(null)} />
+          <StudentInvoicesModal
+            student={viewingInvoices}
+            onClose={() => setViewingInvoices(null)}
+          />
         </>
       )}
     </div>

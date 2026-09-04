@@ -11,6 +11,7 @@ import {
   ProfileOutlined,
   TeamOutlined,
   TrophyOutlined,
+  WalletOutlined,
 } from '@ant-design/icons';
 import { logout as logoutRequest } from '../api/auth';
 import { useAuthStore } from '../store/authStore';
@@ -68,6 +69,12 @@ function AppLayout() {
         key: '/app/classes',
         label: 'Classes',
         icon: <ApartmentOutlined />,
+        visible: hasRole(user?.roles, ROLE.SCHOOL_ADMIN),
+      },
+      {
+        key: '/app/fees',
+        label: 'Fees',
+        icon: <WalletOutlined />,
         visible: hasRole(user?.roles, ROLE.SCHOOL_ADMIN),
       },
       {
