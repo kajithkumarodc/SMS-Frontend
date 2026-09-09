@@ -4,6 +4,7 @@ import { Button, Layout, Menu, Space, Typography, theme } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   ApartmentOutlined,
+  BarChartOutlined,
   CalendarOutlined,
   CheckSquareOutlined,
   DashboardOutlined,
@@ -75,6 +76,12 @@ function AppLayout() {
         key: '/app/fees',
         label: 'Fees',
         icon: <WalletOutlined />,
+        visible: hasRole(user?.roles, ROLE.SCHOOL_ADMIN),
+      },
+      {
+        key: '/app/reports',
+        label: 'Reports',
+        icon: <BarChartOutlined />,
         visible: hasRole(user?.roles, ROLE.SCHOOL_ADMIN),
       },
       {
