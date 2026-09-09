@@ -13,6 +13,7 @@ import {
   ChildAttendancePage,
   MyResultsPage,
   ChildResultsPage,
+  ChildInvoicesPage,
 } from '../features/portal';
 import { useAuthStore } from '../store/authStore';
 
@@ -44,6 +45,7 @@ function AppRoutes() {
           <Route path="my-results" element={<MyResultsPage />} />
           <Route path="children/:studentId/attendance" element={<ChildAttendancePage />} />
           <Route path="children/:studentId/results" element={<ChildResultsPage />} />
+          <Route path="children/:studentId/invoices" element={<ChildInvoicesPage />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/login" replace />} />

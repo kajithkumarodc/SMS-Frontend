@@ -2,6 +2,7 @@ import { AxiosError } from 'axios';
 import api from '../lib/api';
 import type { AttendanceStatus } from './attendance';
 import type { StudentExamResult } from './exams';
+import type { Invoice } from './fees';
 
 export type PortalStudent = {
   id: string;
@@ -103,6 +104,17 @@ export async function fetchMyExamResults(): Promise<StudentExamResult[]> {
 export async function fetchChildExamResults(studentId: string): Promise<StudentExamResult[]> {
   try {
     const { data } = await api.get<StudentExamResult[]>(`/v1/me/children/${studentId}/results`);
+    return data;
+  } catch (error) {
+    if (is404(error)) throw new ChildNotFoundError();
+    throw error;
+  }
+}
+
+/** PARENT: one of the caller's own children's invoices (fee dues). 404 (ChildNotFoundError) if not their child. */
+export async function fetchChildInvoices(studentId: string): Promise<Invoice[]> {
+  try {
+    const { data } = await api.get<Invoice[]>(`/v1/me/children/${studentId}/invoices`);
     return data;
   } catch (error) {
     if (is404(error)) throw new ChildNotFoundError();

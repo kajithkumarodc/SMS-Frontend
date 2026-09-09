@@ -58,3 +58,41 @@ export async function createInvoice(input: CreateInvoiceInput): Promise<Invoice>
   const { data } = await api.post<Invoice>('/v1/invoices', input);
   return data;
 }
+
+/**
+ * The safe slice of a Razorpay Order the browser Checkout widget needs — never
+ * any raw payment data. Mirrors the backend's `FeeDtos.CheckoutResponse`.
+ */
+export type CheckoutResponse = {
+  invoiceId: string;
+  razorpayOrderId: string;
+  razorpayKeyId: string;
+  amountInPaise: number;
+  currency: string;
+};
+
+/**
+ * Start a payment: creates a Razorpay Order for the invoice server-side.
+ * A SCHOOL_ADMIN may check out any invoice in the tenant; a PARENT only their
+ * own child's. 409 if the invoice is already paid.
+ */
+export async function startInvoiceCheckout(invoiceId: string): Promise<CheckoutResponse> {
+  const { data } = await api.post<CheckoutResponse>(`/v1/invoices/${invoiceId}/checkout`);
+  return data;
+}
+
+/**
+ * ⚠️ DEV-ONLY. Flips the invoice to PAID by calling the backend's dev-tools
+ * endpoint, which stands in for the real Razorpay webhook during local demos
+ * (the webhook needs a public URL Razorpay can reach — not available locally).
+ *
+ * In a deployed environment payment confirmation comes ONLY from the
+ * signature-verified webhook (`POST /api/v1/webhooks/razorpay`); the backend
+ * endpoint this calls is gated by `app.dev-tools-enabled` and returns 404 when
+ * off, so this call simply fails and the invoice stays PENDING until the real
+ * webhook arrives. Remove this call (and the dev endpoint) before real launch.
+ */
+export async function simulateInvoicePayment(invoiceId: string): Promise<Invoice> {
+  const { data } = await api.post<Invoice>(`/v1/dev/invoices/${invoiceId}/simulate-payment-success`);
+  return data;
+}
