@@ -69,6 +69,7 @@ function AcademicPerformanceCard() {
       styles={{ body: { padding: token.paddingLG } }}
       extra={
         <Select
+          data-testid="report-class-select"
           style={{ minWidth: 220 }}
           placeholder="Select a class"
           value={classId}

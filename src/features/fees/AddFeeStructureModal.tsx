@@ -115,6 +115,7 @@ function AddFeeStructureModal({ open, onClose }: Props) {
             >
               <Select
                 {...field}
+                data-testid="fee-school-select"
                 placeholder="Select a school"
                 loading={schoolsQuery.isLoading}
                 options={schoolOptions}
@@ -135,7 +136,7 @@ function AddFeeStructureModal({ open, onClose }: Props) {
               validateStatus={errors.name ? 'error' : undefined}
               help={errors.name?.message}
             >
-              <Input {...field} placeholder="e.g. Term 1 Tuition" autoComplete="off" />
+              <Input {...field} data-testid="fee-name-input" placeholder="e.g. Term 1 Tuition" autoComplete="off" />
             </Form.Item>
           )}
         />
@@ -151,6 +152,7 @@ function AddFeeStructureModal({ open, onClose }: Props) {
               help={errors.amount?.message}
             >
               <InputNumber
+                data-testid="fee-amount-input"
                 style={{ width: '100%' }}
                 min={0}
                 step={100}
@@ -173,6 +175,7 @@ function AddFeeStructureModal({ open, onClose }: Props) {
               help={errors.dueDate?.message}
             >
               <DatePicker
+                data-testid="fee-duedate-picker"
                 style={{ width: '100%' }}
                 value={field.value ? dayjs(field.value) : null}
                 onChange={(d) => field.onChange(d ? d.format('YYYY-MM-DD') : '')}

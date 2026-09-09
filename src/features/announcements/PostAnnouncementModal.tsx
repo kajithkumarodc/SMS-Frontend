@@ -78,7 +78,13 @@ function PostAnnouncementModal({ open, onClose }: Props) {
               validateStatus={errors.title ? 'error' : undefined}
               help={errors.title?.message}
             >
-              <Input {...field} placeholder="e.g. Sports day moved to Friday" autoComplete="off" maxLength={200} />
+              <Input
+                {...field}
+                data-testid="announcement-title-input"
+                placeholder="e.g. Sports day moved to Friday"
+                autoComplete="off"
+                maxLength={200}
+              />
             </Form.Item>
           )}
         />
@@ -95,6 +101,7 @@ function PostAnnouncementModal({ open, onClose }: Props) {
             >
               <Input.TextArea
                 {...field}
+                data-testid="announcement-body-input"
                 placeholder="Write the announcement everyone in the school will see…"
                 autoSize={{ minRows: 4, maxRows: 12 }}
                 showCount

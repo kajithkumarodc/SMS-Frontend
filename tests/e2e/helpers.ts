@@ -58,16 +58,17 @@ export async function login(
 
 /**
  * Pick an option in a searchable AntD `<Select>` (identified by its data-testid).
- * Opens the dropdown, then clicks the matching row inside the currently-open
- * panel. rc-select's virtualised list keeps an off-screen `role="option"` mirror
- * per value, so we target the visible `.ant-select-item-option` row directly
- * rather than the ambiguous ARIA role.
+ * Opens the dropdown, types the label to filter (so the target stays inside
+ * rc-select's virtualised window even for long option lists), then clicks the
+ * matching `.ant-select-item-option` row directly — rc-select keeps an off-screen
+ * `role="option"` mirror per value, so the ARIA role is ambiguous.
  */
 export async function selectOption(page: Page, testId: string, optionLabel: string): Promise<void> {
   const select = page.getByTestId(testId);
   await select.click();
   const dropdown = page.locator('.ant-select-dropdown:not(.ant-select-dropdown-hidden)');
   await expect(dropdown).toBeVisible();
+  await select.locator('input').fill(optionLabel);
   const option = dropdown
     .locator('.ant-select-item-option')
     .filter({ has: page.getByText(optionLabel, { exact: true }) });

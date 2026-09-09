@@ -35,3 +35,15 @@ test('teacher enters a mark in the gradebook; it saves and persists on reload', 
     .poll(async () => Number((await page.getByTestId('exam-mark-input').inputValue()).trim()))
     .toBe(mark);
 });
+
+test('student sees a previously-entered exam result on My Results', async ({ page }) => {
+  await login(page, ACCOUNTS.student);
+
+  await page.getByRole('menuitem', { name: 'My Results' }).click();
+  await expect(page).toHaveURL(/\/app\/my-results$/);
+  await expect(page.getByRole('heading', { name: 'My results', level: 2 })).toBeVisible();
+
+  // The demo student is linked to Priya Sharma, who has a mark in the demo exam
+  // (the gradebook test above keeps one entered).
+  await expect(page.getByText(DEMO.examName, { exact: true })).toBeVisible();
+});

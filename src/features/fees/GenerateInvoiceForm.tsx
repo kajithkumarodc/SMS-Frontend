@@ -104,6 +104,7 @@ function GenerateInvoiceForm({ feeStructures, feeStructuresLoading }: Props) {
           >
             <Select
               {...field}
+              data-testid="invoice-student-select"
               placeholder="Search by name or admission number"
               loading={studentsQuery.isLoading}
               options={studentOptions}
@@ -126,6 +127,7 @@ function GenerateInvoiceForm({ feeStructures, feeStructuresLoading }: Props) {
           >
             <Select
               {...field}
+              data-testid="invoice-fee-structure-select"
               placeholder="Select a fee structure"
               loading={feeStructuresLoading}
               options={feeStructureOptions}

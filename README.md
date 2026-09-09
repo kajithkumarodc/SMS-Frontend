@@ -28,8 +28,13 @@ npm run build
 ## End-to-end smoke tests (Playwright)
 
 Smoke coverage of the critical happy paths and the security-critical RBAC checks
-lives in `tests/e2e/`. These run against the **real running application**, not a
-mock, so **both servers must be up first**:
+lives in `tests/e2e/`: `auth`, `rbac`, `students`, `attendance`, `exams`
+(gradebook + a student's My Results), `fees` (fee structure → invoice → the
+parent Pay Now flow up to the Razorpay Checkout iframe opening — no real payment
+is completed), `reports` (all three report sections render; teacher gets the 403
+page) and `announcements` (post → visible on every role's dashboard → delete).
+These run against the **real running application**, not a mock, so **both servers
+must be up first**:
 
 | Server   | Port | How to start | Notes |
 |----------|------|--------------|-------|
@@ -49,6 +54,9 @@ npm run test:e2e        # headless, full suite
 npm run test:e2e:ui     # Playwright UI mode, for debugging
 ```
 
-The tests add / edit a few students and write attendance + exam marks against the
-demo tenant — they are designed to be re-runnable, but they do leave test rows
-behind in the demo database.
+The tests add / edit a few students, write attendance + exam marks, and create
+fee structures, invoices and announcements against the demo tenant — they are
+designed to be re-runnable (each uses a `Date.now()`-stamped name), but they do
+leave test rows behind in the demo database. The `fees` and `announcements` specs
+that switch roles mid-flow are `test.describe.serial` blocks so each step gets a
+fresh browser context.
