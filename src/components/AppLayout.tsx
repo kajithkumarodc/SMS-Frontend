@@ -9,6 +9,7 @@ import {
   CheckSquareOutlined,
   DashboardOutlined,
   LogoutOutlined,
+  NotificationOutlined,
   ProfileOutlined,
   TeamOutlined,
   TrophyOutlined,
@@ -82,6 +83,12 @@ function AppLayout() {
         key: '/app/reports',
         label: 'Reports',
         icon: <BarChartOutlined />,
+        visible: hasRole(user?.roles, ROLE.SCHOOL_ADMIN),
+      },
+      {
+        key: '/app/announcements',
+        label: 'Announcements',
+        icon: <NotificationOutlined />,
         visible: hasRole(user?.roles, ROLE.SCHOOL_ADMIN),
       },
       {

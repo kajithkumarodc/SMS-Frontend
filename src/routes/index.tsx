@@ -9,6 +9,7 @@ import { AttendancePage } from '../features/attendance';
 import { ExamsPage } from '../features/exams';
 import { FeesPage } from '../features/fees';
 import { ReportsPage } from '../features/reports';
+import { AnnouncementsPage } from '../features/announcements';
 import {
   MyAttendancePage,
   ChildAttendancePage,
@@ -43,6 +44,7 @@ function AppRoutes() {
           <Route path="exams" element={<ExamsPage />} />
           <Route path="fees" element={<FeesPage />} />
           <Route path="reports" element={<ReportsPage />} />
+          <Route path="announcements" element={<AnnouncementsPage />} />
           <Route path="my-attendance" element={<MyAttendancePage />} />
           <Route path="my-results" element={<MyResultsPage />} />
           <Route path="children/:studentId/attendance" element={<ChildAttendancePage />} />

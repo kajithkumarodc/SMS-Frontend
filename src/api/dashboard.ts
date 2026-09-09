@@ -21,6 +21,14 @@ export type DashboardAttendanceSummary = {
   total: number;
 };
 
+/** A recent school-wide announcement, trimmed for the dashboard. Same for every role. */
+export type DashboardAnnouncement = {
+  id: string;
+  title: string;
+  body: string;
+  createdAt: string; // ISO timestamp
+};
+
 export type DashboardSummary = {
   userId: string;
   tenantId: string;
@@ -37,6 +45,8 @@ export type DashboardSummary = {
   attendance: DashboardAttendanceSummary | null;
   /** PARENT: linked children (may be an empty array). */
   children: DashboardStudentInfo[] | null;
+  /** The 2-3 most recent school-wide announcements — present for every role. */
+  announcements: DashboardAnnouncement[];
 };
 
 export async function fetchDashboardSummary(): Promise<DashboardSummary> {

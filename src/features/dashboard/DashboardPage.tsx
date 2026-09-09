@@ -22,7 +22,9 @@ import {
 import { fetchClasses } from '../../api/classes';
 import { CLASSES_QUERY_KEY } from '../classes/queryKeys';
 import { buildSectionLookup } from '../classes/sectionLookup';
+import { DashboardAnnouncementsCard } from '../announcements';
 import { useAuthStore } from '../../store/authStore';
+import { hasRole, ROLE } from '../../lib/roles';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -158,6 +160,15 @@ function DashboardPage() {
             </Paragraph>
           </Space>
         </Card>
+      )}
+
+      {data && (
+        <div style={{ marginTop: token.margin }}>
+          <DashboardAnnouncementsCard
+            announcements={data.announcements ?? []}
+            canManage={hasRole(user?.roles, ROLE.SCHOOL_ADMIN)}
+          />
+        </div>
       )}
     </div>
   );
