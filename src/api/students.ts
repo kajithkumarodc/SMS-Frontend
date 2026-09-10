@@ -14,6 +14,7 @@ export type Student = {
   status: StudentStatus;
   sectionId: string | null;
   transportRouteId: string | null;
+  hostelRoomId: string | null;
   createdAt: string;
 };
 

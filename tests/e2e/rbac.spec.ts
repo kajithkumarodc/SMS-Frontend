@@ -2,6 +2,10 @@ import { test, expect } from '@playwright/test';
 import { ACCOUNTS, DEMO, login, navLabels } from './helpers';
 
 test.describe('role-based access control', () => {
+  // The nav is a horizontal AntD menu; a wider viewport keeps every item on one
+  // row so navLabels() sees the full list rather than an overflow ("···") menu.
+  test.use({ viewport: { width: 1600, height: 900 } });
+
   test('TEACHER: no "Add student" button, and /app/classes is forbidden', async ({ page }) => {
     await login(page, ACCOUNTS.teacher);
 
@@ -26,6 +30,7 @@ test.describe('role-based access control', () => {
       'My Results',
       'My Library',
       'My Transport',
+      'My Hostel',
     ]);
 
     // Students is neither in the nav nor reachable by menu.

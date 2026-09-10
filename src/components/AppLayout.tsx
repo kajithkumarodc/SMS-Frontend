@@ -10,6 +10,7 @@ import {
   CarOutlined,
   CheckSquareOutlined,
   DashboardOutlined,
+  HomeOutlined,
   LogoutOutlined,
   NotificationOutlined,
   ProfileOutlined,
@@ -95,6 +96,12 @@ function AppLayout() {
         visible: hasAnyRole(user?.roles, [ROLE.SCHOOL_ADMIN, ROLE.TEACHER]),
       },
       {
+        key: '/app/hostel',
+        label: 'Hostel',
+        icon: <HomeOutlined />,
+        visible: hasAnyRole(user?.roles, [ROLE.SCHOOL_ADMIN, ROLE.TEACHER]),
+      },
+      {
         key: '/app/reports',
         label: 'Reports',
         icon: <BarChartOutlined />,
@@ -128,6 +135,12 @@ function AppLayout() {
         key: '/app/my-transport',
         label: 'My Transport',
         icon: <CarOutlined />,
+        visible: hasRole(user?.roles, ROLE.STUDENT),
+      },
+      {
+        key: '/app/my-hostel',
+        label: 'My Hostel',
+        icon: <HomeOutlined />,
         visible: hasRole(user?.roles, ROLE.STUDENT),
       },
     ],

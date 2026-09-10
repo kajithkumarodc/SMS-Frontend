@@ -26,6 +26,7 @@ import {
   CarOutlined,
   EditOutlined,
   FileTextOutlined,
+  HomeOutlined,
   PlusOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
@@ -47,6 +48,7 @@ import AssignSectionModal from './AssignSectionModal';
 import StudentInvoicesModal from '../fees/StudentInvoicesModal';
 import { StudentLibraryModal } from '../library';
 import { AssignTransportRouteModal } from '../transport';
+import { AllocateHostelRoomModal } from '../hostel';
 
 const { Title, Text } = Typography;
 
@@ -73,6 +75,7 @@ function StudentsPage() {
   const [viewingInvoices, setViewingInvoices] = useState<Student | null>(null);
   const [viewingLibrary, setViewingLibrary] = useState<Student | null>(null);
   const [assigningRoute, setAssigningRoute] = useState<Student | null>(null);
+  const [allocatingRoom, setAllocatingRoom] = useState<Student | null>(null);
 
   const { data, isPending, isError, isFetching, refetch } = useQuery({
     queryKey: [...STUDENTS_QUERY_KEY, { page, pageSize }],
@@ -153,7 +156,7 @@ function StudentsPage() {
     columns.push({
       title: 'Actions',
       key: 'actions',
-      width: canManageStudents ? 560 : 110,
+      width: canManageStudents ? 640 : 110,
       render: (_value, record) => {
         const deactivating = record.status === 'ACTIVE';
         const nextStatus: StudentStatus = deactivating ? 'INACTIVE' : 'ACTIVE';
@@ -204,6 +207,15 @@ function StudentsPage() {
               style={{ paddingInline: 0 }}
             >
               Transport
+            </Button>
+            <Button
+              type="link"
+              size="small"
+              icon={<HomeOutlined />}
+              onClick={() => setAllocatingRoom(record)}
+              style={{ paddingInline: 0 }}
+            >
+              Hostel
             </Button>
             <Button
               type="link"
@@ -334,6 +346,7 @@ function StudentsPage() {
           <EditStudentModal student={editing} onClose={() => setEditing(null)} />
           <AssignSectionModal student={assigning} onClose={() => setAssigning(null)} />
           <AssignTransportRouteModal student={assigningRoute} onClose={() => setAssigningRoute(null)} />
+          <AllocateHostelRoomModal student={allocatingRoom} onClose={() => setAllocatingRoom(null)} />
           <StudentInvoicesModal
             student={viewingInvoices}
             onClose={() => setViewingInvoices(null)}
