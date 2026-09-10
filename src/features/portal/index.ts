@@ -3,3 +3,5 @@ export { default as ChildAttendancePage } from './ChildAttendancePage';
 export { default as MyResultsPage } from './MyResultsPage';
 export { default as ChildResultsPage } from './ChildResultsPage';
 export { default as ChildInvoicesPage } from './ChildInvoicesPage';
+export { default as MyLibraryPage } from './MyLibraryPage';
+export { default as ChildLibraryPage } from './ChildLibraryPage';

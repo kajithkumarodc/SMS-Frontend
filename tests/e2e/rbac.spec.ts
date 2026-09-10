@@ -17,10 +17,10 @@ test.describe('role-based access control', () => {
     ).toBeVisible();
   });
 
-  test('STUDENT: nav is limited to Dashboard, My Attendance, My Results', async ({ page }) => {
+  test('STUDENT: nav is limited to Dashboard, My Attendance, My Results, My Library', async ({ page }) => {
     await login(page, ACCOUNTS.student);
 
-    expect(await navLabels(page)).toEqual(['Dashboard', 'My Attendance', 'My Results']);
+    expect(await navLabels(page)).toEqual(['Dashboard', 'My Attendance', 'My Results', 'My Library']);
 
     // Students is neither in the nav nor reachable by menu.
     await expect(page.getByRole('menuitem', { name: 'Students' })).toHaveCount(0);

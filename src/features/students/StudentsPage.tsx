@@ -22,6 +22,7 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import {
   ApartmentOutlined,
+  BookOutlined,
   EditOutlined,
   FileTextOutlined,
   PlusOutlined,
@@ -35,7 +36,7 @@ import {
 } from '../../api/students';
 import { fetchClasses } from '../../api/classes';
 import { useAuthStore } from '../../store/authStore';
-import { hasRole, ROLE } from '../../lib/roles';
+import { hasAnyRole, hasRole, ROLE } from '../../lib/roles';
 import { CLASSES_QUERY_KEY } from '../classes/queryKeys';
 import { buildSectionLookup } from '../classes/sectionLookup';
 import { STUDENTS_QUERY_KEY } from './queryKeys';
@@ -43,6 +44,7 @@ import AddStudentModal from './AddStudentModal';
 import EditStudentModal from './EditStudentModal';
 import AssignSectionModal from './AssignSectionModal';
 import StudentInvoicesModal from '../fees/StudentInvoicesModal';
+import { StudentLibraryModal } from '../library';
 
 const { Title, Text } = Typography;
 
@@ -59,6 +61,7 @@ function StudentsPage() {
   const queryClient = useQueryClient();
   const roles = useAuthStore((state) => state.user?.roles);
   const canManageStudents = hasRole(roles, ROLE.SCHOOL_ADMIN);
+  const canViewLibrary = hasAnyRole(roles, [ROLE.SCHOOL_ADMIN, ROLE.TEACHER]);
 
   const [page, setPage] = useState(1); // 1-based for the Table; the API is 0-based
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
@@ -66,6 +69,7 @@ function StudentsPage() {
   const [editing, setEditing] = useState<Student | null>(null);
   const [assigning, setAssigning] = useState<Student | null>(null);
   const [viewingInvoices, setViewingInvoices] = useState<Student | null>(null);
+  const [viewingLibrary, setViewingLibrary] = useState<Student | null>(null);
 
   const { data, isPending, isError, isFetching, refetch } = useQuery({
     queryKey: [...STUDENTS_QUERY_KEY, { page, pageSize }],
@@ -142,16 +146,32 @@ function StudentsPage() {
     },
   ];
 
-  if (canManageStudents) {
+  if (canManageStudents || canViewLibrary) {
     columns.push({
       title: 'Actions',
       key: 'actions',
-      width: 380,
+      width: canManageStudents ? 470 : 110,
       render: (_value, record) => {
         const deactivating = record.status === 'ACTIVE';
         const nextStatus: StudentStatus = deactivating ? 'INACTIVE' : 'ACTIVE';
         const pending =
           statusMutation.isPending && statusMutation.variables?.id === record.id;
+
+        const libraryButton = (
+          <Button
+            type="link"
+            size="small"
+            icon={<BookOutlined />}
+            onClick={() => setViewingLibrary(record)}
+            style={{ paddingInline: 0 }}
+          >
+            Library
+          </Button>
+        );
+
+        if (!canManageStudents) {
+          return <Space size="small" wrap>{libraryButton}</Space>;
+        }
 
         return (
           <Space size="small" wrap>
@@ -182,6 +202,7 @@ function StudentsPage() {
             >
               Invoices
             </Button>
+            {libraryButton}
             <Popconfirm
               title={deactivating ? 'Deactivate this student?' : 'Reactivate this student?'}
               description={
@@ -305,6 +326,10 @@ function StudentsPage() {
             onClose={() => setViewingInvoices(null)}
           />
         </>
+      )}
+
+      {canViewLibrary && (
+        <StudentLibraryModal student={viewingLibrary} onClose={() => setViewingLibrary(null)} />
       )}
     </div>
   );
