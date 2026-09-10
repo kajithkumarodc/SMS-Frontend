@@ -11,6 +11,7 @@ import { FeesPage } from '../features/fees';
 import { ReportsPage } from '../features/reports';
 import { AnnouncementsPage } from '../features/announcements';
 import { LibraryPage } from '../features/library';
+import { TransportPage } from '../features/transport';
 import {
   MyAttendancePage,
   ChildAttendancePage,
@@ -19,6 +20,8 @@ import {
   ChildInvoicesPage,
   MyLibraryPage,
   ChildLibraryPage,
+  MyTransportPage,
+  ChildTransportPage,
 } from '../features/portal';
 import { useAuthStore } from '../store/authStore';
 
@@ -49,13 +52,16 @@ function AppRoutes() {
           <Route path="reports" element={<ReportsPage />} />
           <Route path="announcements" element={<AnnouncementsPage />} />
           <Route path="library" element={<LibraryPage />} />
+          <Route path="transport" element={<TransportPage />} />
           <Route path="my-attendance" element={<MyAttendancePage />} />
           <Route path="my-results" element={<MyResultsPage />} />
           <Route path="my-library" element={<MyLibraryPage />} />
+          <Route path="my-transport" element={<MyTransportPage />} />
           <Route path="children/:studentId/attendance" element={<ChildAttendancePage />} />
           <Route path="children/:studentId/results" element={<ChildResultsPage />} />
           <Route path="children/:studentId/invoices" element={<ChildInvoicesPage />} />
           <Route path="children/:studentId/library" element={<ChildLibraryPage />} />
+          <Route path="children/:studentId/transport" element={<ChildTransportPage />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/login" replace />} />

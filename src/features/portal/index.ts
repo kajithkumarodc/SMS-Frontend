@@ -5,3 +5,5 @@ export { default as ChildResultsPage } from './ChildResultsPage';
 export { default as ChildInvoicesPage } from './ChildInvoicesPage';
 export { default as MyLibraryPage } from './MyLibraryPage';
 export { default as ChildLibraryPage } from './ChildLibraryPage';
+export { default as MyTransportPage } from './MyTransportPage';
+export { default as ChildTransportPage } from './ChildTransportPage';

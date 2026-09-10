@@ -329,6 +329,9 @@ function ChildrenList({
                 <Link key="library" to={`/app/children/${child.id}/library`}>
                   Library <RightOutlined />
                 </Link>,
+                <Link key="transport" to={`/app/children/${child.id}/transport`}>
+                  Transport <RightOutlined />
+                </Link>,
               ]}
             >
               <Space direction="vertical" size={token.marginXXS}>

@@ -23,6 +23,7 @@ import type { ColumnsType } from 'antd/es/table';
 import {
   ApartmentOutlined,
   BookOutlined,
+  CarOutlined,
   EditOutlined,
   FileTextOutlined,
   PlusOutlined,
@@ -45,6 +46,7 @@ import EditStudentModal from './EditStudentModal';
 import AssignSectionModal from './AssignSectionModal';
 import StudentInvoicesModal from '../fees/StudentInvoicesModal';
 import { StudentLibraryModal } from '../library';
+import { AssignTransportRouteModal } from '../transport';
 
 const { Title, Text } = Typography;
 
@@ -70,6 +72,7 @@ function StudentsPage() {
   const [assigning, setAssigning] = useState<Student | null>(null);
   const [viewingInvoices, setViewingInvoices] = useState<Student | null>(null);
   const [viewingLibrary, setViewingLibrary] = useState<Student | null>(null);
+  const [assigningRoute, setAssigningRoute] = useState<Student | null>(null);
 
   const { data, isPending, isError, isFetching, refetch } = useQuery({
     queryKey: [...STUDENTS_QUERY_KEY, { page, pageSize }],
@@ -150,7 +153,7 @@ function StudentsPage() {
     columns.push({
       title: 'Actions',
       key: 'actions',
-      width: canManageStudents ? 470 : 110,
+      width: canManageStudents ? 560 : 110,
       render: (_value, record) => {
         const deactivating = record.status === 'ACTIVE';
         const nextStatus: StudentStatus = deactivating ? 'INACTIVE' : 'ACTIVE';
@@ -192,6 +195,15 @@ function StudentsPage() {
               style={{ paddingInline: 0 }}
             >
               Assign section
+            </Button>
+            <Button
+              type="link"
+              size="small"
+              icon={<CarOutlined />}
+              onClick={() => setAssigningRoute(record)}
+              style={{ paddingInline: 0 }}
+            >
+              Transport
             </Button>
             <Button
               type="link"
@@ -321,6 +333,7 @@ function StudentsPage() {
           <AddStudentModal open={addOpen} onClose={() => setAddOpen(false)} />
           <EditStudentModal student={editing} onClose={() => setEditing(null)} />
           <AssignSectionModal student={assigning} onClose={() => setAssigning(null)} />
+          <AssignTransportRouteModal student={assigningRoute} onClose={() => setAssigningRoute(null)} />
           <StudentInvoicesModal
             student={viewingInvoices}
             onClose={() => setViewingInvoices(null)}

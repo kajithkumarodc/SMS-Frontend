@@ -13,6 +13,7 @@ export type Student = {
   guardianContact: string | null;
   status: StudentStatus;
   sectionId: string | null;
+  transportRouteId: string | null;
   createdAt: string;
 };
 

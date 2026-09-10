@@ -7,6 +7,7 @@ import {
   BarChartOutlined,
   BookOutlined,
   CalendarOutlined,
+  CarOutlined,
   CheckSquareOutlined,
   DashboardOutlined,
   LogoutOutlined,
@@ -88,6 +89,12 @@ function AppLayout() {
         visible: hasAnyRole(user?.roles, [ROLE.SCHOOL_ADMIN, ROLE.TEACHER]),
       },
       {
+        key: '/app/transport',
+        label: 'Transport',
+        icon: <CarOutlined />,
+        visible: hasAnyRole(user?.roles, [ROLE.SCHOOL_ADMIN, ROLE.TEACHER]),
+      },
+      {
         key: '/app/reports',
         label: 'Reports',
         icon: <BarChartOutlined />,
@@ -115,6 +122,12 @@ function AppLayout() {
         key: '/app/my-library',
         label: 'My Library',
         icon: <ReadOutlined />,
+        visible: hasRole(user?.roles, ROLE.STUDENT),
+      },
+      {
+        key: '/app/my-transport',
+        label: 'My Transport',
+        icon: <CarOutlined />,
         visible: hasRole(user?.roles, ROLE.STUDENT),
       },
     ],
