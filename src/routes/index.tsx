@@ -13,6 +13,7 @@ import { AnnouncementsPage } from '../features/announcements';
 import { LibraryPage } from '../features/library';
 import { TransportPage } from '../features/transport';
 import { HostelPage } from '../features/hostel';
+import { StaffPage, LeaveRequestsPage } from '../features/staff';
 import {
   MyAttendancePage,
   ChildAttendancePage,
@@ -25,6 +26,7 @@ import {
   ChildTransportPage,
   MyHostelPage,
   ChildHostelPage,
+  MyProfilePage,
 } from '../features/portal';
 import { useAuthStore } from '../store/authStore';
 
@@ -57,6 +59,9 @@ function AppRoutes() {
           <Route path="library" element={<LibraryPage />} />
           <Route path="transport" element={<TransportPage />} />
           <Route path="hostel" element={<HostelPage />} />
+          <Route path="staff" element={<StaffPage />} />
+          <Route path="leave-requests" element={<LeaveRequestsPage />} />
+          <Route path="my-profile" element={<MyProfilePage />} />
           <Route path="my-attendance" element={<MyAttendancePage />} />
           <Route path="my-results" element={<MyResultsPage />} />
           <Route path="my-library" element={<MyLibraryPage />} />

@@ -9,3 +9,4 @@ export { default as MyTransportPage } from './MyTransportPage';
 export { default as ChildTransportPage } from './ChildTransportPage';
 export { default as MyHostelPage } from './MyHostelPage';
 export { default as ChildHostelPage } from './ChildHostelPage';
+export { default as MyProfilePage } from './MyProfilePage';

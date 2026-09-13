@@ -10,13 +10,16 @@ import {
   CarOutlined,
   CheckSquareOutlined,
   DashboardOutlined,
+  FileDoneOutlined,
   HomeOutlined,
+  IdcardOutlined,
   LogoutOutlined,
   NotificationOutlined,
   ProfileOutlined,
   ReadOutlined,
   TeamOutlined,
   TrophyOutlined,
+  UserOutlined,
   WalletOutlined,
 } from '@ant-design/icons';
 import { logout as logoutRequest } from '../api/auth';
@@ -102,6 +105,18 @@ function AppLayout() {
         visible: hasAnyRole(user?.roles, [ROLE.SCHOOL_ADMIN, ROLE.TEACHER]),
       },
       {
+        key: '/app/staff',
+        label: 'Staff',
+        icon: <IdcardOutlined />,
+        visible: hasRole(user?.roles, ROLE.SCHOOL_ADMIN),
+      },
+      {
+        key: '/app/leave-requests',
+        label: 'Leave Requests',
+        icon: <FileDoneOutlined />,
+        visible: hasRole(user?.roles, ROLE.SCHOOL_ADMIN),
+      },
+      {
         key: '/app/reports',
         label: 'Reports',
         icon: <BarChartOutlined />,
@@ -142,6 +157,12 @@ function AppLayout() {
         label: 'My Hostel',
         icon: <HomeOutlined />,
         visible: hasRole(user?.roles, ROLE.STUDENT),
+      },
+      {
+        key: '/app/my-profile',
+        label: 'My Profile',
+        icon: <UserOutlined />,
+        visible: hasRole(user?.roles, ROLE.TEACHER),
       },
     ],
     [user?.roles],
