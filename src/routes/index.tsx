@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import ProtectedRoute from '../components/ProtectedRoute';
 import AppLayout from '../components/AppLayout';
 import { LoginForm } from '../features/auth';
+import { RegisterSchoolForm } from '../features/onboarding';
 import { DashboardPage } from '../features/dashboard';
 import { StudentsPage } from '../features/students';
 import { ClassesPage } from '../features/classes';
@@ -40,11 +41,22 @@ function LoginRoute() {
   return <LoginForm />;
 }
 
+function RegisterRoute() {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
+  if (isAuthenticated) {
+    return <Navigate to="/app/dashboard" replace />;
+  }
+
+  return <RegisterSchoolForm />;
+}
+
 function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/app/dashboard" replace />} />
       <Route path="/login" element={<LoginRoute />} />
+      <Route path="/register" element={<RegisterRoute />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/app" element={<AppLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />

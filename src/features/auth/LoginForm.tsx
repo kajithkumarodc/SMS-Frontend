@@ -3,7 +3,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Alert, Button, Card, Form, Input, Typography, theme } from 'antd';
 import { BankOutlined, LockOutlined, MailOutlined } from '@ant-design/icons';
 import { login, LoginError } from '../../api/auth';
@@ -25,9 +25,14 @@ const DEFAULT_SCHOOL_IDENTIFIER = import.meta.env.VITE_DEFAULT_SCHOOL_IDENTIFIER
 
 function LoginForm() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const setSession = useAuthStore((state) => state.login);
   const { token } = theme.useToken();
   const [formError, setFormError] = useState<string | null>(null);
+
+  // A freshly-registered school arrives here as /login?school=<identifier> (see
+  // RegisterSchoolForm) so the admin doesn't have to retype the code they just chose.
+  const prefillSchoolIdentifier = searchParams.get('school') ?? DEFAULT_SCHOOL_IDENTIFIER;
 
   const {
     control,
@@ -35,7 +40,7 @@ function LoginForm() {
     formState: { errors },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { schoolIdentifier: DEFAULT_SCHOOL_IDENTIFIER, email: '', password: '' },
+    defaultValues: { schoolIdentifier: prefillSchoolIdentifier, email: '', password: '' },
     mode: 'onTouched',
   });
 
@@ -168,6 +173,12 @@ function LoginForm() {
             Sign in
           </Button>
         </Form>
+
+        <div style={{ marginTop: token.marginLG, textAlign: 'center' }}>
+          <Text type="secondary">
+            Don&rsquo;t have a school account yet? <Link to="/register">Register your school</Link>
+          </Text>
+        </div>
       </Card>
     </div>
   );
