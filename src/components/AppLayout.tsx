@@ -1,10 +1,11 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Button, Layout, Menu, Space, Typography, theme } from 'antd';
+import { Avatar, Badge, Button, Input, Layout, Menu, Space, Typography, theme } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   ApartmentOutlined,
   BarChartOutlined,
+  BellOutlined,
   BookOutlined,
   CalendarOutlined,
   CarOutlined,
@@ -17,6 +18,7 @@ import {
   NotificationOutlined,
   ProfileOutlined,
   ReadOutlined,
+  SearchOutlined,
   TeamOutlined,
   TrophyOutlined,
   UserOutlined,
@@ -26,7 +28,7 @@ import { logout as logoutRequest } from '../api/auth';
 import { useAuthStore } from '../store/authStore';
 import { hasAnyRole, hasRole, ROLE } from '../lib/roles';
 
-const { Header, Content } = Layout;
+const { Sider, Header, Content } = Layout;
 const { Text } = Typography;
 
 const LOGIN_ROUTE = '/login';
@@ -182,45 +184,111 @@ function AppLayout() {
     navigate(LOGIN_ROUTE, { replace: true });
   };
 
+  const initials = (user?.name ?? '?')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('');
+
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <Header
+    <div style={{ minHeight: '100vh', padding: token.marginLG, background: token.colorBgLayout }}>
+      <Layout
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: token.marginLG,
-          background: token.colorBgContainer,
-          borderBottom: `1px solid ${token.colorBorderSecondary}`,
-          paddingInline: token.paddingLG,
+          minHeight: `calc(100vh - ${token.marginLG * 2}px)`,
+          borderRadius: token.borderRadiusLG * 1.3,
+          overflow: 'hidden',
+          boxShadow: token.boxShadowTertiary,
         }}
       >
-        <Text strong style={{ color: token.colorPrimary, letterSpacing: 1, whiteSpace: 'nowrap' }}>
-          SCHOOL MANAGEMENT
-        </Text>
-        <Menu
-          data-testid="main-nav"
-          mode="horizontal"
-          selectedKeys={[selectedKey]}
-          items={menuItems}
-          onClick={({ key }) => navigate(key)}
-          style={{ flex: 1, minWidth: 0, background: 'transparent', borderBottom: 'none' }}
-        />
-        <Space size="middle">
-          {user?.name && (
-            <Text type="secondary" style={{ whiteSpace: 'nowrap' }}>
-              {user.name}
-              {primaryRole ? ` · ${primaryRole}` : ''}
+        <Sider
+          width={240}
+          theme="light"
+          style={{ borderInlineEnd: `1px solid ${token.colorBorderSecondary}` }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: token.marginSM,
+              padding: `${token.paddingLG}px ${token.paddingMD}px`,
+            }}
+          >
+            <span
+              aria-hidden
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 36,
+                height: 36,
+                borderRadius: token.borderRadius,
+                background: token.colorPrimary,
+                color: '#fff',
+                fontWeight: 700,
+              }}
+            >
+              SM
+            </span>
+            <Text strong style={{ fontSize: token.fontSizeLG, letterSpacing: 0.2 }}>
+              School Manager
             </Text>
-          )}
-          <Button icon={<LogoutOutlined />} onClick={handleLogout} loading={loggingOut}>
-            Log out
-          </Button>
-        </Space>
-      </Header>
-      <Content style={{ padding: token.paddingLG }}>
-        <Outlet />
-      </Content>
-    </Layout>
+          </div>
+          <Menu
+            data-testid="main-nav"
+            mode="inline"
+            selectedKeys={[selectedKey]}
+            items={menuItems}
+            onClick={({ key }) => navigate(key)}
+            style={{ border: 'none', paddingInline: token.paddingXS }}
+          />
+        </Sider>
+        <Layout>
+          <Header
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: token.marginLG,
+              background: token.colorBgContainer,
+              borderBottom: `1px solid ${token.colorBorderSecondary}`,
+              paddingInline: token.paddingLG,
+            }}
+          >
+            <Input
+              prefix={<SearchOutlined style={{ color: token.colorTextTertiary }} />}
+              placeholder="Search"
+              style={{ maxWidth: 320, background: token.colorFillTertiary }}
+              variant="filled"
+            />
+            <div style={{ flex: 1 }} />
+            <Space size="large" align="center">
+              <Badge dot color={token.colorPrimary}>
+                <BellOutlined style={{ fontSize: 18, color: token.colorTextSecondary }} />
+              </Badge>
+              <Space size="small" align="center">
+                <Avatar style={{ background: token.colorPrimary }}>{initials || <UserOutlined />}</Avatar>
+                {user?.name && (
+                  <div style={{ lineHeight: 1.2 }}>
+                    <div style={{ fontWeight: 600 }}>{user.name}</div>
+                    {primaryRole && (
+                      <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
+                        {primaryRole}
+                      </Text>
+                    )}
+                  </div>
+                )}
+              </Space>
+              <Button icon={<LogoutOutlined />} onClick={handleLogout} loading={loggingOut}>
+                Log out
+              </Button>
+            </Space>
+          </Header>
+          <Content style={{ padding: token.paddingLG }}>
+            <Outlet />
+          </Content>
+        </Layout>
+      </Layout>
+    </div>
   );
 }
 

@@ -141,10 +141,20 @@ function DashboardPage() {
       {data && !data.placeholder && data.counts && (
         <Row gutter={[token.margin, token.margin]}>
           <Col xs={24} sm={12} lg={8}>
-            <StatCard icon={<BankOutlined aria-hidden />} label="Schools" value={data.counts.schools} />
+            <StatCard
+              icon={<BankOutlined aria-hidden />}
+              label="Schools"
+              value={data.counts.schools}
+              variant="violet"
+            />
           </Col>
           <Col xs={24} sm={12} lg={8}>
-            <StatCard icon={<TeamOutlined aria-hidden />} label="Users" value={data.counts.users} />
+            <StatCard
+              icon={<TeamOutlined aria-hidden />}
+              label="Users"
+              value={data.counts.users}
+              variant="amber"
+            />
           </Col>
         </Row>
       )}
@@ -357,8 +367,26 @@ function ChildrenList({
   );
 }
 
-function StatCard({ icon, label, value }: { icon: ReactNode; label: string; value: number }) {
+const STAT_CARD_VARIANTS = {
+  violet: { bg: '#EDE9FE', fg: '#7C3AED' },
+  amber: { bg: '#FEF3C7', fg: '#D97706' },
+  sky: { bg: '#DBEAFE', fg: '#2563EB' },
+  rose: { bg: '#FCE7F3', fg: '#DB2777' },
+} as const;
+
+function StatCard({
+  icon,
+  label,
+  value,
+  variant = 'violet',
+}: {
+  icon: ReactNode;
+  label: string;
+  value: number;
+  variant?: keyof typeof STAT_CARD_VARIANTS;
+}) {
   const { token } = theme.useToken();
+  const colors = STAT_CARD_VARIANTS[variant];
 
   return (
     <Card style={{ height: '100%', boxShadow: token.boxShadowTertiary }}>
@@ -372,8 +400,8 @@ function StatCard({ icon, label, value }: { icon: ReactNode; label: string; valu
             width: token.controlHeightLG,
             height: token.controlHeightLG,
             borderRadius: token.borderRadiusLG,
-            background: token.colorPrimaryBg,
-            color: token.colorPrimary,
+            background: colors.bg,
+            color: colors.fg,
             fontSize: token.fontSizeLG,
           }}
         >
