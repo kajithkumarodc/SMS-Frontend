@@ -3,7 +3,6 @@ import { create } from 'zustand';
 export type AuthUser = {
   id: string;
   name: string;
-  tenantId: string;
   roles: string[];
 };
 

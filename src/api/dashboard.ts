@@ -31,7 +31,6 @@ export type DashboardAnnouncement = {
 
 export type DashboardSummary = {
   userId: string;
-  tenantId: string;
   roles: string[];
   /** false = real role-specific data below; true = nothing to show for this role yet. */
   placeholder: boolean;

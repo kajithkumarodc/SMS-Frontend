@@ -39,11 +39,7 @@ export const DEMO = {
   children: ['Ajith', 'Priya Sharma'],
 } as const;
 
-/**
- * Log in through the real login form and wait for the dashboard. The school code
- * field is pre-filled from VITE_DEFAULT_SCHOOL_IDENTIFIER=demo, so only the
- * email + password are entered here.
- */
+/** Log in through the real login form and wait for the dashboard. */
 export async function login(
   page: Page,
   email: string,

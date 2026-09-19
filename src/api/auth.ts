@@ -3,7 +3,6 @@ import api from '../lib/api';
 import type { AuthUser } from '../store/authStore';
 
 export type LoginCredentials = {
-  schoolIdentifier: string;
   email: string;
   password: string;
 };
@@ -27,14 +26,9 @@ const GENERIC_MESSAGE = 'Invalid email or password';
  * Authenticate. On success the backend sets an httpOnly access-token cookie;
  * this returns only the user object for the UI.
  */
-export async function login({
-  schoolIdentifier,
-  email,
-  password,
-}: LoginCredentials): Promise<AuthUser> {
+export async function login({ email, password }: LoginCredentials): Promise<AuthUser> {
   try {
     const { data } = await api.post<LoginResponseBody>('/v1/auth/login', {
-      schoolIdentifier,
       email,
       password,
     });

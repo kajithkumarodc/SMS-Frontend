@@ -3,9 +3,9 @@ import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation } from '@tanstack/react-query';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Alert, Button, Card, Form, Input, Typography, theme } from 'antd';
-import { BankOutlined, LockOutlined, MailOutlined } from '@ant-design/icons';
+import { LockOutlined, MailOutlined } from '@ant-design/icons';
 import { login, LoginError } from '../../api/auth';
 import { useAuthStore } from '../../store/authStore';
 
@@ -14,25 +14,17 @@ const { Title, Text } = Typography;
 const DASHBOARD_ROUTE = '/app/dashboard';
 
 const loginSchema = z.object({
-  schoolIdentifier: z.string().min(1, 'School code is required'),
   email: z.string().min(1, 'Email is required').email('Enter a valid email address'),
   password: z.string().min(1, 'Password is required'),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
-const DEFAULT_SCHOOL_IDENTIFIER = import.meta.env.VITE_DEFAULT_SCHOOL_IDENTIFIER ?? '';
-
 function LoginForm() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const setSession = useAuthStore((state) => state.login);
   const { token } = theme.useToken();
   const [formError, setFormError] = useState<string | null>(null);
-
-  // A freshly-registered school arrives here as /login?school=<identifier> (see
-  // RegisterSchoolForm) so the admin doesn't have to retype the code they just chose.
-  const prefillSchoolIdentifier = searchParams.get('school') ?? DEFAULT_SCHOOL_IDENTIFIER;
 
   const {
     control,
@@ -40,7 +32,7 @@ function LoginForm() {
     formState: { errors },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { schoolIdentifier: prefillSchoolIdentifier, email: '', password: '' },
+    defaultValues: { email: '', password: '' },
     mode: 'onTouched',
   });
 
@@ -101,26 +93,6 @@ function LoginForm() {
         <Form layout="vertical" onFinish={onSubmit} noValidate requiredMark={false}>
           <Controller
             control={control}
-            name="schoolIdentifier"
-            render={({ field }) => (
-              <Form.Item
-                label="School code"
-                validateStatus={errors.schoolIdentifier ? 'error' : undefined}
-                help={errors.schoolIdentifier?.message ?? 'The short code or subdomain for your school.'}
-              >
-                <Input
-                  {...field}
-                  size="large"
-                  autoComplete="organization"
-                  prefix={<BankOutlined />}
-                  placeholder="e.g. springfield-high"
-                />
-              </Form.Item>
-            )}
-          />
-
-          <Controller
-            control={control}
             name="email"
             render={({ field }) => (
               <Form.Item
@@ -173,12 +145,6 @@ function LoginForm() {
             Sign in
           </Button>
         </Form>
-
-        <div style={{ marginTop: token.marginLG, textAlign: 'center' }}>
-          <Text type="secondary">
-            Don&rsquo;t have a school account yet? <Link to="/register">Register your school</Link>
-          </Text>
-        </div>
       </Card>
     </div>
   );
