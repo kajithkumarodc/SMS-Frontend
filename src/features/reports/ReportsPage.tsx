@@ -4,6 +4,7 @@ import { hasRole, ROLE } from '../../lib/roles';
 import AttendanceTrendCard from './AttendanceTrendCard';
 import AcademicPerformanceCard from './AcademicPerformanceCard';
 import FeeCollectionCard from './FeeCollectionCard';
+import FeeReportsCard from './FeeReportsCard';
 
 const { Title, Text } = Typography;
 
@@ -34,6 +35,7 @@ function ReportsPage() {
       <AttendanceTrendCard />
       <AcademicPerformanceCard />
       <FeeCollectionCard />
+      <FeeReportsCard />
     </div>
   );
 }

@@ -10,7 +10,8 @@ import { CheckoutDismissedError, openRazorpayCheckout } from './razorpayCheckout
 import { formatAmount } from './format';
 
 type Props = {
-  invoice: Invoice;
+  /** Only the fields the button actually needs — callers may pass a full Invoice or a lighter statement line. */
+  invoice: Pick<Invoice, 'id' | 'status' | 'balance'>;
   /** Shown in the Razorpay widget under the school name — usually the fee structure name. */
   description: string;
   /** Called after the invoice has been marked PAID so the caller can refresh its list. */
@@ -27,7 +28,7 @@ function PayNowButton({ invoice, description, onPaid }: Props) {
   const user = useAuthStore((state) => state.user);
   const [paying, setPaying] = useState(false);
 
-  if (invoice.status !== 'PENDING') return null;
+  if (invoice.status !== 'PENDING' && invoice.status !== 'PARTIALLY_PAID') return null;
 
   const pay = async () => {
     setPaying(true);
@@ -63,7 +64,7 @@ function PayNowButton({ invoice, description, onPaid }: Props) {
       // real payment confirmation must always come through the webhook.
       await simulateInvoicePayment(invoice.id);
 
-      message.success(`Payment of ${formatAmount(invoice.amount)} received — invoice marked paid.`);
+      message.success(`Payment of ${formatAmount(invoice.balance)} received — invoice marked paid.`);
       onPaid();
     } catch {
       message.error('Payment could not be completed. Please try again.');

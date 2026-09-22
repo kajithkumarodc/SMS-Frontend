@@ -3,6 +3,10 @@ import api from '../lib/api';
 export type DashboardCounts = {
   schools: number;
   users: number;
+  students: number;
+  staff: number;
+  maleStudents: number;
+  femaleStudents: number;
 };
 
 /** Basic student info the backend returns for STUDENT (self) and PARENT (each child). */
@@ -29,6 +33,21 @@ export type DashboardAnnouncement = {
   createdAt: string; // ISO timestamp
 };
 
+/** One class/subject a teacher is assigned to teach, with the sections it covers. */
+export type DashboardTeacherAssignment = {
+  className: string | null;
+  subjectName: string | null;
+  sectionNames: string[];
+};
+
+/** TEACHER: assigned classes/sections/subjects and roster size. */
+export type DashboardTeacherInfo = {
+  assignedClassCount: number;
+  assignedSubjectCount: number;
+  studentCount: number;
+  assignments: DashboardTeacherAssignment[];
+};
+
 export type DashboardSummary = {
   userId: string;
   roles: string[];
@@ -44,6 +63,8 @@ export type DashboardSummary = {
   attendance: DashboardAttendanceSummary | null;
   /** PARENT: linked children (may be an empty array). */
   children: DashboardStudentInfo[] | null;
+  /** TEACHER: assigned classes/sections/subjects. */
+  teacher: DashboardTeacherInfo | null;
   /** The 2-3 most recent school-wide announcements — present for every role. */
   announcements: DashboardAnnouncement[];
 };

@@ -18,14 +18,14 @@ type Props = {
 
 /**
  * Invoice table shared by the admin's per-student modal and the parent's
- * per-child portal view: fee structure, amount, status tag, due date, and a
- * "Pay now" action on anything still PENDING.
+ * per-child portal view: fee structure, net payable, paid, balance, status
+ * tag, due date, and a "Pay now" action while a balance remains.
  */
 function InvoicesList({ invoices, onInvoicePaid }: Props) {
   // The invoice carries only the fee-structure id; resolve its name + due date.
   const feeStructuresQuery = useQuery({
     queryKey: FEE_STRUCTURES_QUERY_KEY,
-    queryFn: fetchFeeStructures,
+    queryFn: () => fetchFeeStructures(),
     staleTime: 60 * 1000,
   });
 
@@ -39,21 +39,37 @@ function InvoicesList({ invoices, onInvoicePaid }: Props) {
       title: 'Fee structure',
       dataIndex: 'feeStructureId',
       key: 'feeStructure',
-      render: (id: string) => feeStructure(id)?.name ?? <Text type="secondary">—</Text>,
+      render: (id: string) => feeStructure(id)?.name ?? <Text type="secondary">-</Text>,
     },
     {
-      title: 'Amount',
-      dataIndex: 'amount',
-      key: 'amount',
+      title: 'Net payable',
+      dataIndex: 'netAmount',
+      key: 'netAmount',
       align: 'right',
-      width: 140,
+      width: 130,
+      render: (value: number) => formatAmount(value),
+    },
+    {
+      title: 'Paid',
+      dataIndex: 'paidAmount',
+      key: 'paidAmount',
+      align: 'right',
+      width: 120,
+      render: (value: number) => formatAmount(value),
+    },
+    {
+      title: 'Balance',
+      dataIndex: 'balance',
+      key: 'balance',
+      align: 'right',
+      width: 120,
       render: (value: number) => formatAmount(value),
     },
     {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      width: 110,
+      width: 130,
       render: (status: Invoice['status']) => (
         <Tag color={INVOICE_STATUS_TAG_COLOR[status]} style={{ marginInlineEnd: 0 }}>
           {invoiceStatusLabel(status)}

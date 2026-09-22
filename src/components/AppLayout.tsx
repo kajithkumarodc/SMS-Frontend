@@ -10,15 +10,21 @@ import {
   CalendarOutlined,
   CarOutlined,
   CheckSquareOutlined,
+  ContactsOutlined,
   DashboardOutlined,
   FileDoneOutlined,
   HomeOutlined,
   IdcardOutlined,
   LogoutOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
   NotificationOutlined,
   ProfileOutlined,
   ReadOutlined,
   SearchOutlined,
+  SettingOutlined,
+  SolutionOutlined,
+  SwapOutlined,
   TeamOutlined,
   TrophyOutlined,
   UserOutlined,
@@ -26,7 +32,8 @@ import {
 } from '@ant-design/icons';
 import { logout as logoutRequest } from '../api/auth';
 import { useAuthStore } from '../store/authStore';
-import { hasAnyRole, hasRole, ROLE } from '../lib/roles';
+import { hasAnyRole, hasPermission, hasRole, ROLE } from '../lib/roles';
+import { ChangePasswordModal } from '../features/settings';
 
 const { Sider, Header, Content } = Layout;
 const { Text } = Typography;
@@ -47,6 +54,7 @@ function AppLayout() {
   const logout = useAuthStore((state) => state.logout);
   const { token } = theme.useToken();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
   const primaryRole = user?.roles?.[0];
 
@@ -57,6 +65,30 @@ function AppLayout() {
         label: 'Dashboard',
         icon: <DashboardOutlined />,
         visible: true,
+      },
+      {
+        key: '/app/front-office',
+        label: 'Front Office',
+        icon: <ContactsOutlined />,
+        visible: hasPermission(user?.permissions, 'ENQUIRY_VIEW'),
+      },
+      {
+        key: '/app/enquiries',
+        label: 'Enquiries',
+        icon: <ContactsOutlined />,
+        visible: hasPermission(user?.permissions, 'ENQUIRY_VIEW'),
+      },
+      {
+        key: '/app/admissions',
+        label: 'Online Admissions',
+        icon: <SolutionOutlined />,
+        visible: hasPermission(user?.permissions, 'ADMISSION_APPLICATION_VIEW'),
+      },
+      {
+        key: '/app/admission-cycles',
+        label: 'Admission Cycles',
+        icon: <CalendarOutlined />,
+        visible: hasPermission(user?.permissions, 'ADMISSION_CYCLE_VIEW'),
       },
       {
         key: '/app/students',
@@ -87,6 +119,12 @@ function AppLayout() {
         label: 'Fees',
         icon: <WalletOutlined />,
         visible: hasRole(user?.roles, ROLE.SCHOOL_ADMIN),
+      },
+      {
+        key: '/app/fee-collection',
+        label: 'Fee Collection',
+        icon: <WalletOutlined />,
+        visible: hasPermission(user?.permissions, 'FEE_COLLECT'),
       },
       {
         key: '/app/library',
@@ -131,6 +169,18 @@ function AppLayout() {
         visible: hasRole(user?.roles, ROLE.SCHOOL_ADMIN),
       },
       {
+        key: '/app/promotion',
+        label: 'Promotion',
+        icon: <SwapOutlined />,
+        visible: hasPermission(user?.permissions, 'STUDENT_PROMOTE'),
+      },
+      {
+        key: '/app/settings',
+        label: 'Settings',
+        icon: <SettingOutlined />,
+        visible: hasAnyRole(user?.roles, [ROLE.SCHOOL_ADMIN, ROLE.SUPER_ADMIN]),
+      },
+      {
         key: '/app/my-attendance',
         label: 'My Attendance',
         icon: <CalendarOutlined />,
@@ -167,7 +217,7 @@ function AppLayout() {
         visible: hasRole(user?.roles, ROLE.TEACHER),
       },
     ],
-    [user?.roles],
+    [user?.roles, user?.permissions],
   );
 
   const menuItems: MenuProps['items'] = navItems
@@ -204,6 +254,11 @@ function AppLayout() {
         <Sider
           width={240}
           theme="light"
+          breakpoint="lg"
+          collapsedWidth={0}
+          collapsed={collapsed}
+          onBreakpoint={(broken) => setCollapsed(broken)}
+          trigger={null}
           style={{ borderInlineEnd: `1px solid ${token.colorBorderSecondary}` }}
         >
           <div
@@ -254,6 +309,12 @@ function AppLayout() {
               paddingInline: token.paddingLG,
             }}
           >
+            <Button
+              type="text"
+              aria-label={collapsed ? 'Open navigation' : 'Close navigation'}
+              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+              onClick={() => setCollapsed(!collapsed)}
+            />
             <Input
               prefix={<SearchOutlined style={{ color: token.colorTextTertiary }} />}
               placeholder="Search"
@@ -288,6 +349,7 @@ function AppLayout() {
           </Content>
         </Layout>
       </Layout>
+      <ChangePasswordModal />
     </div>
   );
 }

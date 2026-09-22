@@ -9,6 +9,8 @@ import {
   Skeleton,
   Space,
   Table,
+  Tabs,
+  Tag,
   Typography,
   theme,
 } from 'antd';
@@ -21,8 +23,18 @@ import { FEE_STRUCTURES_QUERY_KEY } from './queryKeys';
 import { formatAmount, formatDate } from './format';
 import AddFeeStructureModal from './AddFeeStructureModal';
 import GenerateInvoiceForm from './GenerateInvoiceForm';
+import FeeTypesTab from './FeeTypesTab';
+import FeeDiscountsTab from './FeeDiscountsTab';
 
 const { Title, Text } = Typography;
+
+const FREQUENCY_LABEL: Record<string, string> = {
+  ONE_TIME: 'One-time',
+  MONTHLY: 'Monthly',
+  QUARTERLY: 'Quarterly',
+  HALF_YEARLY: 'Half-yearly',
+  ANNUAL: 'Annual',
+};
 
 function FeesPage() {
   const { token } = theme.useToken();
@@ -33,7 +45,7 @@ function FeesPage() {
 
   const feeStructuresQuery = useQuery({
     queryKey: FEE_STRUCTURES_QUERY_KEY,
-    queryFn: fetchFeeStructures,
+    queryFn: () => fetchFeeStructures(),
     enabled: canManage,
   });
 
@@ -50,38 +62,35 @@ function FeesPage() {
   const feeStructures = feeStructuresQuery.data ?? [];
 
   const columns: ColumnsType<FeeStructure> = [
+    { title: 'Name', dataIndex: 'name', key: 'name', render: (value: string) => <Text strong>{value}</Text> },
+    { title: 'Session', dataIndex: 'academicYear', key: 'academicYear', width: 120 },
+    { title: 'Amount', dataIndex: 'amount', key: 'amount', align: 'right', width: 140, render: (value: number) => formatAmount(value) },
     {
-      title: 'Name',
-      dataIndex: 'name',
-      key: 'name',
-      render: (value: string) => <Text strong>{value}</Text>,
+      title: 'Frequency',
+      dataIndex: 'frequency',
+      key: 'frequency',
+      width: 120,
+      render: (v: string) => FREQUENCY_LABEL[v] ?? v,
+    },
+    { title: 'Due date', dataIndex: 'dueDate', key: 'dueDate', width: 150, render: (value: string) => formatDate(value) },
+    {
+      title: 'Late fee',
+      dataIndex: 'lateFeeAmount',
+      key: 'lateFeeAmount',
+      width: 110,
+      render: (v: number | null) => (v ? formatAmount(v) : '—'),
     },
     {
-      title: 'Amount',
-      dataIndex: 'amount',
-      key: 'amount',
-      align: 'right',
-      width: 160,
-      render: (value: number) => formatAmount(value),
-    },
-    {
-      title: 'Due date',
-      dataIndex: 'dueDate',
-      key: 'dueDate',
-      width: 180,
-      render: (value: string) => formatDate(value),
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      width: 100,
+      render: (status: string) => <Tag color={status === 'ACTIVE' ? 'success' : 'default'}>{status}</Tag>,
     },
   ];
 
-  return (
-    <div style={{ maxWidth: 900, width: '100%', margin: '0 auto' }}>
-      <header style={{ marginBottom: token.marginLG }}>
-        <Title level={2} style={{ margin: 0 }}>
-          Fees
-        </Title>
-        <Text type="secondary">Define what your school charges, then raise invoices for students.</Text>
-      </header>
-
+  const structuresTab = (
+    <div>
       <Card
         title="Fee structures"
         style={{ marginBottom: token.marginLG, boxShadow: token.boxShadowTertiary }}
@@ -132,7 +141,7 @@ function FeesPage() {
       </Card>
 
       <Card
-        title="Generate invoice"
+        title="Assign fee to students"
         style={{ boxShadow: token.boxShadowTertiary }}
         styles={{ body: { padding: token.paddingLG } }}
       >
@@ -143,6 +152,26 @@ function FeesPage() {
       </Card>
 
       <AddFeeStructureModal open={addOpen} onClose={() => setAddOpen(false)} />
+    </div>
+  );
+
+  return (
+    <div style={{ maxWidth: 1040, width: '100%', margin: '0 auto' }}>
+      <header style={{ marginBottom: token.marginLG }}>
+        <Title level={2} style={{ margin: 0 }}>
+          Fees
+        </Title>
+        <Text type="secondary">Define what your school charges, assign it to students, and configure discounts.</Text>
+      </header>
+
+      <Tabs
+        defaultActiveKey="structures"
+        items={[
+          { key: 'structures', label: 'Fee Structures', children: structuresTab },
+          { key: 'types', label: 'Fee Types', children: <FeeTypesTab /> },
+          { key: 'discounts', label: 'Discounts', children: <FeeDiscountsTab /> },
+        ]}
+      />
     </div>
   );
 }

@@ -8,10 +8,13 @@ import {
 import {
   Alert,
   App,
+  Avatar,
   Button,
   Card,
+  Dropdown,
   Empty,
-  Popconfirm,
+  Input,
+  Select,
   Skeleton,
   Space,
   Table,
@@ -20,19 +23,27 @@ import {
   theme,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import type { MenuProps } from 'antd';
 import {
   ApartmentOutlined,
   BookOutlined,
   CarOutlined,
   EditOutlined,
+  EyeOutlined,
   FileTextOutlined,
+  FolderOutlined,
   HomeOutlined,
+  MoreOutlined,
   PlusOutlined,
+  PrinterOutlined,
   ReloadOutlined,
+  UserOutlined,
 } from '@ant-design/icons';
 import {
   changeStudentStatus,
   fetchStudents,
+  searchStudents,
+  studentPhotoUrl,
   type Student,
   type StudentStatus,
 } from '../../api/students';
@@ -45,6 +56,8 @@ import { STUDENTS_QUERY_KEY } from './queryKeys';
 import AddStudentModal from './AddStudentModal';
 import EditStudentModal from './EditStudentModal';
 import AssignSectionModal from './AssignSectionModal';
+import StudentDocumentsModal from './StudentDocumentsModal';
+import StudentProfileDrawer from './StudentProfileDrawer';
 import StudentInvoicesModal from '../fees/StudentInvoicesModal';
 import { StudentLibraryModal } from '../library';
 import { AssignTransportRouteModal } from '../transport';
@@ -57,11 +70,22 @@ const DEFAULT_PAGE_SIZE = 20;
 const STATUS_COLOR: Record<string, string> = {
   ACTIVE: 'success',
   INACTIVE: 'default',
+  GRADUATED: 'blue',
+  LEFT_SCHOOL: 'default',
+  TRANSFERRED: 'gold',
 };
+
+const STATUS_OPTIONS: { value: StudentStatus; label: string }[] = [
+  { value: 'ACTIVE', label: 'Active' },
+  { value: 'INACTIVE', label: 'Inactive' },
+  { value: 'GRADUATED', label: 'Graduated' },
+  { value: 'LEFT_SCHOOL', label: 'Left school' },
+  { value: 'TRANSFERRED', label: 'Transferred' },
+];
 
 function StudentsPage() {
   const { token } = theme.useToken();
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const queryClient = useQueryClient();
   const roles = useAuthStore((state) => state.user?.roles);
   const canManageStudents = hasRole(roles, ROLE.SCHOOL_ADMIN);
@@ -69,6 +93,8 @@ function StudentsPage() {
 
   const [page, setPage] = useState(1); // 1-based for the Table; the API is 0-based
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [q, setQ] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StudentStatus | undefined>();
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<Student | null>(null);
   const [assigning, setAssigning] = useState<Student | null>(null);
@@ -76,10 +102,16 @@ function StudentsPage() {
   const [viewingLibrary, setViewingLibrary] = useState<Student | null>(null);
   const [assigningRoute, setAssigningRoute] = useState<Student | null>(null);
   const [allocatingRoom, setAllocatingRoom] = useState<Student | null>(null);
+  const [viewingDocuments, setViewingDocuments] = useState<Student | null>(null);
+  const [viewingProfile, setViewingProfile] = useState<Student | null>(null);
 
+  const hasFilter = Boolean(q) || Boolean(statusFilter);
   const { data, isPending, isError, isFetching, refetch } = useQuery({
-    queryKey: [...STUDENTS_QUERY_KEY, { page, pageSize }],
-    queryFn: () => fetchStudents({ page: page - 1, size: pageSize }),
+    queryKey: [...STUDENTS_QUERY_KEY, { page, pageSize, q, statusFilter }],
+    queryFn: () =>
+      hasFilter
+        ? searchStudents({ page: page - 1, size: pageSize, q: q || undefined, status: statusFilter })
+        : fetchStudents({ page: page - 1, size: pageSize }),
     placeholderData: keepPreviousData,
   });
 
@@ -111,15 +143,33 @@ function StudentsPage() {
 
   const columns: ColumnsType<Student> = [
     {
+      title: 'Photo',
+      key: 'photo',
+      width: 56,
+      render: (_value, record) => (
+        <Avatar src={record.photoUrl ? studentPhotoUrl(record.id) : undefined} icon={<UserOutlined />} />
+      ),
+    },
+    {
       title: 'Full name',
       dataIndex: 'fullName',
       key: 'fullName',
-      render: (value: string) => <Text strong>{value}</Text>,
+      render: (value: string, record) => (
+        <a onClick={() => setViewingProfile(record)}>
+          <Text strong>{value}</Text>
+        </a>
+      ),
     },
     {
       title: 'Admission number',
       dataIndex: 'admissionNumber',
       key: 'admissionNumber',
+    },
+    {
+      title: 'Roll number',
+      dataIndex: 'rollNumber',
+      key: 'rollNumber',
+      render: (value: string | null) => value || <Text type="secondary">—</Text>,
     },
     {
       title: 'Status',
@@ -145,42 +195,106 @@ function StudentsPage() {
       },
     },
     {
-      title: 'Guardian name',
-      dataIndex: 'guardianName',
-      key: 'guardianName',
+      title: 'Parent / guardian',
+      key: 'guardian',
+      render: (_value, record) => (
+        <Space direction="vertical" size={0}>
+          <Text>{record.guardianName || <Text type="secondary">—</Text>}</Text>
+          {record.guardianPhone && (
+            <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
+              {record.guardianPhone}
+            </Text>
+          )}
+        </Space>
+      ),
+    },
+    {
+      title: 'Admission date',
+      dataIndex: 'admissionDate',
+      key: 'admissionDate',
       render: (value: string | null) => value || <Text type="secondary">—</Text>,
     },
   ];
 
-  if (canManageStudents || canViewLibrary) {
+  {
     columns.push({
       title: 'Actions',
       key: 'actions',
-      width: canManageStudents ? 640 : 110,
+      width: canManageStudents ? 320 : 180,
       render: (_value, record) => {
-        const deactivating = record.status === 'ACTIVE';
-        const nextStatus: StudentStatus = deactivating ? 'INACTIVE' : 'ACTIVE';
-        const pending =
-          statusMutation.isPending && statusMutation.variables?.id === record.id;
+        const pending = statusMutation.isPending && statusMutation.variables?.id === record.id;
 
-        const libraryButton = (
+        const viewButton = (
           <Button
             type="link"
             size="small"
-            icon={<BookOutlined />}
-            onClick={() => setViewingLibrary(record)}
+            icon={<EyeOutlined />}
+            onClick={() => setViewingProfile(record)}
             style={{ paddingInline: 0 }}
           >
-            Library
+            View
+          </Button>
+        );
+        const documentsButton = (
+          <Button
+            type="link"
+            size="small"
+            icon={<FolderOutlined />}
+            onClick={() => setViewingDocuments(record)}
+            style={{ paddingInline: 0 }}
+          >
+            Documents
+          </Button>
+        );
+        const printButton = (
+          <Button
+            type="link"
+            size="small"
+            icon={<PrinterOutlined />}
+            onClick={() => {
+              setViewingProfile(record);
+              window.setTimeout(() => window.print(), 300);
+            }}
+            style={{ paddingInline: 0 }}
+          >
+            Print
           </Button>
         );
 
         if (!canManageStudents) {
-          return <Space size="small" wrap>{libraryButton}</Space>;
+          return (
+            <Space size="small" wrap>
+              {viewButton}
+              {canViewLibrary && (
+                <Button
+                  type="link"
+                  size="small"
+                  icon={<BookOutlined />}
+                  onClick={() => setViewingLibrary(record)}
+                  style={{ paddingInline: 0 }}
+                >
+                  Library
+                </Button>
+              )}
+            </Space>
+          );
         }
+
+        const statusItems: MenuProps['items'] = STATUS_OPTIONS.filter((o) => o.value !== record.status).map(
+          (o) => ({ key: o.value, label: o.label }),
+        );
+
+        const moreItems: MenuProps['items'] = [
+          { key: 'assign-section', icon: <ApartmentOutlined />, label: 'Assign section' },
+          { key: 'transport', icon: <CarOutlined />, label: 'Transport' },
+          { key: 'hostel', icon: <HomeOutlined />, label: 'Hostel' },
+          { key: 'invoices', icon: <FileTextOutlined />, label: 'Invoices' },
+          { key: 'library', icon: <BookOutlined />, label: 'Library' },
+        ];
 
         return (
           <Space size="small" wrap>
+            {viewButton}
             <Button
               type="link"
               size="small"
@@ -190,65 +304,43 @@ function StudentsPage() {
             >
               Edit
             </Button>
-            <Button
-              type="link"
-              size="small"
-              icon={<ApartmentOutlined />}
-              onClick={() => setAssigning(record)}
-              style={{ paddingInline: 0 }}
+            {documentsButton}
+            {printButton}
+            <Dropdown
+              menu={{
+                items: moreItems,
+                onClick: ({ key }) => {
+                  if (key === 'assign-section') setAssigning(record);
+                  if (key === 'transport') setAssigningRoute(record);
+                  if (key === 'hostel') setAllocatingRoom(record);
+                  if (key === 'invoices') setViewingInvoices(record);
+                  if (key === 'library') setViewingLibrary(record);
+                },
+              }}
             >
-              Assign section
-            </Button>
-            <Button
-              type="link"
-              size="small"
-              icon={<CarOutlined />}
-              onClick={() => setAssigningRoute(record)}
-              style={{ paddingInline: 0 }}
-            >
-              Transport
-            </Button>
-            <Button
-              type="link"
-              size="small"
-              icon={<HomeOutlined />}
-              onClick={() => setAllocatingRoom(record)}
-              style={{ paddingInline: 0 }}
-            >
-              Hostel
-            </Button>
-            <Button
-              type="link"
-              size="small"
-              icon={<FileTextOutlined />}
-              onClick={() => setViewingInvoices(record)}
-              style={{ paddingInline: 0 }}
-            >
-              Invoices
-            </Button>
-            {libraryButton}
-            <Popconfirm
-              title={deactivating ? 'Deactivate this student?' : 'Reactivate this student?'}
-              description={
-                deactivating
-                  ? 'They stay in the records with an INACTIVE status.'
-                  : 'They will be marked ACTIVE again.'
-              }
-              okText={deactivating ? 'Deactivate' : 'Reactivate'}
-              cancelText="Cancel"
-              okButtonProps={{ danger: deactivating }}
-              onConfirm={() =>
-                statusMutation.mutate({
-                  id: record.id,
-                  status: nextStatus,
-                  name: record.fullName,
-                })
-              }
-            >
-              <Button type="link" size="small" danger={deactivating} loading={pending} style={{ paddingInline: 0 }}>
-                {deactivating ? 'Deactivate' : 'Reactivate'}
+              <Button type="link" size="small" icon={<MoreOutlined />} style={{ paddingInline: 0 }}>
+                More
               </Button>
-            </Popconfirm>
+            </Dropdown>
+            <Dropdown
+              menu={{
+                items: statusItems,
+                onClick: ({ key }) =>
+                  modal.confirm({
+                    title: `Change status to "${STATUS_OPTIONS.find((o) => o.value === key)?.label}"?`,
+                    content:
+                      key === 'ACTIVE'
+                        ? 'The student will be marked ACTIVE again.'
+                        : 'The student stays in the records — no data is deleted.',
+                    okText: 'Confirm',
+                    onOk: () => statusMutation.mutate({ id: record.id, status: key as StudentStatus, name: record.fullName }),
+                  }),
+              }}
+            >
+              <Button type="link" size="small" loading={pending} style={{ paddingInline: 0 }}>
+                Status
+              </Button>
+            </Dropdown>
           </Space>
         );
       },
@@ -256,7 +348,7 @@ function StudentsPage() {
   }
 
   return (
-    <div style={{ maxWidth: 1040, width: '100%', margin: '0 auto' }}>
+    <div style={{ maxWidth: 1200, width: '100%', margin: '0 auto' }}>
       <header
         style={{
           display: 'flex',
@@ -290,6 +382,31 @@ function StudentsPage() {
           )}
         </Space>
       </header>
+
+      <Card size="small" style={{ marginBottom: token.marginMD }}>
+        <Space wrap size="middle">
+          <Input.Search
+            placeholder="Search name, admission #, roll #, parent, phone"
+            allowClear
+            style={{ width: 280 }}
+            onSearch={(value) => {
+              setQ(value);
+              setPage(1);
+            }}
+          />
+          <Select
+            placeholder="Status"
+            allowClear
+            style={{ width: 160 }}
+            options={STATUS_OPTIONS}
+            value={statusFilter}
+            onChange={(value) => {
+              setStatusFilter(value);
+              setPage(1);
+            }}
+          />
+        </Space>
+      </Card>
 
       <Card
         styles={{ body: { padding: token.paddingLG } }}
@@ -357,6 +474,43 @@ function StudentsPage() {
       {canViewLibrary && (
         <StudentLibraryModal student={viewingLibrary} onClose={() => setViewingLibrary(null)} />
       )}
+
+      <StudentDocumentsModal
+        student={viewingDocuments}
+        onClose={() => setViewingDocuments(null)}
+        canUpload={canManageStudents}
+        canDelete={canManageStudents}
+      />
+
+      <StudentProfileDrawer
+        student={viewingProfile}
+        onClose={() => setViewingProfile(null)}
+        canEdit={canManageStudents}
+        onEdit={(student) => {
+          setViewingProfile(null);
+          setEditing(student);
+        }}
+        onOpenDocuments={(student) => {
+          setViewingProfile(null);
+          setViewingDocuments(student);
+        }}
+        onOpenInvoices={(student) => {
+          setViewingProfile(null);
+          setViewingInvoices(student);
+        }}
+        onOpenLibrary={(student) => {
+          setViewingProfile(null);
+          setViewingLibrary(student);
+        }}
+        onOpenTransport={(student) => {
+          setViewingProfile(null);
+          setAssigningRoute(student);
+        }}
+        onOpenHostel={(student) => {
+          setViewingProfile(null);
+          setAllocatingRoom(student);
+        }}
+      />
     </div>
   );
 }

@@ -7,13 +7,18 @@ import { StudentsPage } from '../features/students';
 import { ClassesPage } from '../features/classes';
 import { AttendancePage } from '../features/attendance';
 import { ExamsPage } from '../features/exams';
-import { FeesPage } from '../features/fees';
+import { FeesPage, FeeCollectionPage } from '../features/fees';
 import { ReportsPage } from '../features/reports';
 import { AnnouncementsPage } from '../features/announcements';
 import { LibraryPage } from '../features/library';
 import { TransportPage } from '../features/transport';
 import { HostelPage } from '../features/hostel';
 import { StaffPage, LeaveRequestsPage } from '../features/staff';
+import { SettingsPage } from '../features/settings';
+import { FrontOfficePage, EnquiriesPage } from '../features/frontoffice';
+import { PromotionPage } from '../features/promotion';
+import { AdmissionsPage, AdmissionCyclesPage } from '../features/admissions';
+import { AdmissionApplyPage, AdmissionStatusPage, ActivateAccountPage } from '../features/admissions-public';
 import {
   MyAttendancePage,
   ChildAttendancePage,
@@ -45,6 +50,9 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<Navigate to="/app/dashboard" replace />} />
       <Route path="/login" element={<LoginRoute />} />
+      <Route path="/admissions/apply" element={<AdmissionApplyPage />} />
+      <Route path="/admissions/status" element={<AdmissionStatusPage />} />
+      <Route path="/activate" element={<ActivateAccountPage />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/app" element={<AppLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
@@ -54,6 +62,7 @@ function AppRoutes() {
           <Route path="attendance" element={<AttendancePage />} />
           <Route path="exams" element={<ExamsPage />} />
           <Route path="fees" element={<FeesPage />} />
+          <Route path="fee-collection" element={<FeeCollectionPage />} />
           <Route path="reports" element={<ReportsPage />} />
           <Route path="announcements" element={<AnnouncementsPage />} />
           <Route path="library" element={<LibraryPage />} />
@@ -61,6 +70,12 @@ function AppRoutes() {
           <Route path="hostel" element={<HostelPage />} />
           <Route path="staff" element={<StaffPage />} />
           <Route path="leave-requests" element={<LeaveRequestsPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="promotion" element={<PromotionPage />} />
+          <Route path="front-office" element={<FrontOfficePage />} />
+          <Route path="enquiries" element={<EnquiriesPage />} />
+          <Route path="admissions" element={<AdmissionsPage />} />
+          <Route path="admission-cycles" element={<AdmissionCyclesPage />} />
           <Route path="my-profile" element={<MyProfilePage />} />
           <Route path="my-attendance" element={<MyAttendancePage />} />
           <Route path="my-results" element={<MyResultsPage />} />

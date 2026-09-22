@@ -36,11 +36,23 @@ test.describe.serial('fees', () => {
     await expect(page.getByText(`Fee structure "${FEE_NAME}" added`)).toBeVisible();
     await expect(page.getByRole('cell', { name: FEE_NAME })).toBeVisible();
 
-    // Generate an invoice for the seeded student against the new structure.
-    await selectOption(page, 'invoice-student-select', `${DEMO.studentName} (ADM-SMOKE-1)`);
+    // Assign the new fee to the seeded student (the picker is multi-select, so the dropdown
+    // deliberately stays open after a pick — supports assigning to many students at once).
     await selectOption(page, 'invoice-fee-structure-select', `${FEE_NAME} — ${FEE_AMOUNT}.00`);
-    await page.getByRole('button', { name: 'Generate invoice' }).click();
-    await expect(page.getByText('Invoice generated — it starts as PENDING')).toBeVisible();
+    const studentSelect = page.getByTestId('invoice-student-select');
+    await studentSelect.click();
+    const dropdown = page.locator('.ant-select-dropdown:not(.ant-select-dropdown-hidden)');
+    await expect(dropdown).toBeVisible();
+    await studentSelect.locator('input').fill(`${DEMO.studentName} (ADM-SMOKE-1)`);
+    await dropdown
+      .locator('.ant-select-item-option')
+      .filter({ has: page.getByText(`${DEMO.studentName} (ADM-SMOKE-1)`, { exact: true }) })
+      .first()
+      .click();
+    await page.keyboard.press('Escape');
+
+    await page.getByRole('button', { name: 'Assign fee' }).click();
+    await expect(page.getByText(/Assigned the fee to 1 of 1 student/)).toBeVisible();
   });
 
   test('parent sees the PENDING invoice and Pay Now opens Razorpay Checkout', async ({ page }) => {
@@ -51,7 +63,7 @@ test.describe.serial('fees', () => {
       .getByRole('link', { name: /Invoices/ })
       .click();
     await expect(page).toHaveURL(/\/app\/children\/[^/]+\/invoices$/);
-    await expect(page.getByRole('heading', { name: `${DEMO.studentName} — invoices`, level: 2 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: `${DEMO.studentName} — fees`, level: 2 })).toBeVisible();
 
     // A PENDING invoice with its "Pay now" action (the one test 1 generated).
     const pendingRow = page

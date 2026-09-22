@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from 'react';
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -13,11 +13,12 @@ import {
   Typography,
   theme,
 } from 'antd';
-import { BankOutlined, ReloadOutlined, RightOutlined, TeamOutlined } from '@ant-design/icons';
+import { ReloadOutlined, RightOutlined } from '@ant-design/icons';
 import {
   fetchDashboardSummary,
   type DashboardAttendanceSummary,
   type DashboardStudentInfo,
+  type DashboardTeacherInfo,
 } from '../../api/dashboard';
 import { fetchClasses } from '../../api/classes';
 import { CLASSES_QUERY_KEY } from '../classes/queryKeys';
@@ -25,6 +26,7 @@ import { buildSectionLookup } from '../classes/sectionLookup';
 import { DashboardAnnouncementsCard } from '../announcements';
 import { useAuthStore } from '../../store/authStore';
 import { hasRole, ROLE } from '../../lib/roles';
+import AdminDashboard from './AdminDashboard';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -138,26 +140,9 @@ function DashboardPage() {
         )
       )}
 
-      {data && !data.placeholder && data.counts && (
-        <Row gutter={[token.margin, token.margin]}>
-          <Col xs={24} sm={12} lg={8}>
-            <StatCard
-              icon={<BankOutlined aria-hidden />}
-              label="Schools"
-              value={data.counts.schools}
-              variant="violet"
-            />
-          </Col>
-          <Col xs={24} sm={12} lg={8}>
-            <StatCard
-              icon={<TeamOutlined aria-hidden />}
-              label="Users"
-              value={data.counts.users}
-              variant="amber"
-            />
-          </Col>
-        </Row>
-      )}
+      {data && data.teacher && <TeacherDashboard teacher={data.teacher} />}
+
+      {data && !data.placeholder && data.counts && <AdminDashboard counts={data.counts} />}
 
       {data && data.placeholder && (
         <Card style={{ boxShadow: token.boxShadowTertiary }}>
@@ -308,6 +293,75 @@ function AttendanceStat({ label, value, color }: { label: string; value: number;
   );
 }
 
+function TeacherDashboard({ teacher }: { teacher: DashboardTeacherInfo }) {
+  const { token } = theme.useToken();
+
+  return (
+    <Space direction="vertical" size={token.margin} style={{ width: '100%' }}>
+      <Row gutter={[token.margin, token.margin]}>
+        <Col xs={12} sm={8}>
+          <Card style={{ boxShadow: token.boxShadowTertiary }}>
+            <Statistic title="Assigned classes" value={teacher.assignedClassCount} />
+          </Card>
+        </Col>
+        <Col xs={12} sm={8}>
+          <Card style={{ boxShadow: token.boxShadowTertiary }}>
+            <Statistic title="Assigned subjects" value={teacher.assignedSubjectCount} />
+          </Card>
+        </Col>
+        <Col xs={24} sm={8}>
+          <Card style={{ boxShadow: token.boxShadowTertiary }}>
+            <Statistic title="Students" value={teacher.studentCount} />
+          </Card>
+        </Col>
+      </Row>
+
+      <Card
+        style={{ boxShadow: token.boxShadowTertiary }}
+        title="My classes"
+        extra={
+          <Link to="/app/students">
+            View students <RightOutlined />
+          </Link>
+        }
+      >
+        {teacher.assignments.length === 0 ? (
+          <Text type="secondary">
+            You haven&rsquo;t been assigned to any classes yet — ask your school administrator to assign you
+            to a subject.
+          </Text>
+        ) : (
+          <Space direction="vertical" size={token.marginSM} style={{ width: '100%' }}>
+            {teacher.assignments.map((assignment, i) => (
+              <div
+                key={i}
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  gap: token.marginSM,
+                  paddingBlock: token.paddingXS,
+                  borderBottom: i < teacher.assignments.length - 1 ? `1px solid ${token.colorBorderSecondary}` : undefined,
+                }}
+              >
+                <Text strong>{assignment.className ?? 'Unknown class'}</Text>
+                <Text type="secondary">{assignment.subjectName ?? 'Unknown subject'}</Text>
+                <Space size={4} wrap>
+                  {assignment.sectionNames.map((name) => (
+                    <Tag key={name} style={{ marginInlineEnd: 0 }}>
+                      {name}
+                    </Tag>
+                  ))}
+                </Space>
+              </div>
+            ))}
+          </Space>
+        )}
+      </Card>
+    </Space>
+  );
+}
+
 function ChildrenList({
   students,
   sectionLabel,
@@ -364,61 +418,6 @@ function ChildrenList({
         ))}
       </Row>
     </Space>
-  );
-}
-
-const STAT_CARD_VARIANTS = {
-  violet: { bg: '#EDE9FE', fg: '#7C3AED' },
-  amber: { bg: '#FEF3C7', fg: '#D97706' },
-  sky: { bg: '#DBEAFE', fg: '#2563EB' },
-  rose: { bg: '#FCE7F3', fg: '#DB2777' },
-} as const;
-
-function StatCard({
-  icon,
-  label,
-  value,
-  variant = 'violet',
-}: {
-  icon: ReactNode;
-  label: string;
-  value: number;
-  variant?: keyof typeof STAT_CARD_VARIANTS;
-}) {
-  const { token } = theme.useToken();
-  const colors = STAT_CARD_VARIANTS[variant];
-
-  return (
-    <Card style={{ height: '100%', boxShadow: token.boxShadowTertiary }}>
-      <Space direction="vertical" size={token.marginSM} style={{ width: '100%' }}>
-        <span
-          aria-hidden
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: token.controlHeightLG,
-            height: token.controlHeightLG,
-            borderRadius: token.borderRadiusLG,
-            background: colors.bg,
-            color: colors.fg,
-            fontSize: token.fontSizeLG,
-          }}
-        >
-          {icon}
-        </span>
-        <Statistic
-          title={label}
-          value={value}
-          valueStyle={{
-            fontSize: token.fontSizeHeading1,
-            fontWeight: token.fontWeightStrong,
-            lineHeight: 1.1,
-            color: token.colorText,
-          }}
-        />
-      </Space>
-    </Card>
   );
 }
 

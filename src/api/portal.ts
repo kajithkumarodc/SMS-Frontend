@@ -2,12 +2,14 @@ import { AxiosError } from 'axios';
 import api from '../lib/api';
 import type { AttendanceStatus } from './attendance';
 import type { StudentExamResult } from './exams';
-import type { Invoice } from './fees';
+import type { Invoice, Receipt, StudentFeeStatement } from './fees';
 
 export type PortalStudent = {
   id: string;
   fullName: string;
   admissionNumber: string;
+  rollNumber: string | null;
+  photoUrl: string | null;
   dateOfBirth: string | null;
   guardianName: string | null;
   guardianContact: string | null;
@@ -115,6 +117,28 @@ export async function fetchChildExamResults(studentId: string): Promise<StudentE
 export async function fetchChildInvoices(studentId: string): Promise<Invoice[]> {
   try {
     const { data } = await api.get<Invoice[]>(`/v1/me/children/${studentId}/invoices`);
+    return data;
+  } catch (error) {
+    if (is404(error)) throw new ChildNotFoundError();
+    throw error;
+  }
+}
+
+/** PARENT: one of the caller's own children's full fee statement (totals + payment history). 404 if not their child. */
+export async function fetchChildFeeStatement(studentId: string): Promise<StudentFeeStatement> {
+  try {
+    const { data } = await api.get<StudentFeeStatement>(`/v1/me/children/${studentId}/fee-statement`);
+    return data;
+  } catch (error) {
+    if (is404(error)) throw new ChildNotFoundError();
+    throw error;
+  }
+}
+
+/** PARENT: a receipt for one of the caller's own children's payments. 404 (ChildNotFoundError) if not theirs. */
+export async function fetchChildReceipt(paymentId: string): Promise<Receipt> {
+  try {
+    const { data } = await api.get<Receipt>(`/v1/me/payments/${paymentId}/receipt`);
     return data;
   } catch (error) {
     if (is404(error)) throw new ChildNotFoundError();

@@ -4,6 +4,11 @@ export type AuthUser = {
   id: string;
   name: string;
   roles: string[];
+  // RBAC Phase 1: database-driven permission grants, baked into the login
+  // response alongside roles. Optional so old cached localStorage sessions
+  // (pre-Phase-1, no `permissions`/`mustChangePassword` field) still parse.
+  permissions?: string[];
+  mustChangePassword?: boolean;
 };
 
 const USER_KEY = 'auth_user';

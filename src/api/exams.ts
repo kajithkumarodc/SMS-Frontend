@@ -63,5 +63,9 @@ export async function recordExamMark(
 }
 
 // A student's own results are read through the ownership-scoped portal endpoints
-// (`fetchMyExamResults` / `fetchChildExamResults` in api/portal.ts). The staff-only
-// `GET /v1/exams/student/{id}` endpoint has no frontend caller yet.
+// (`fetchMyExamResults` / `fetchChildExamResults` in api/portal.ts). This is the
+// staff-only equivalent, used by the Phase 3 student profile's Examinations tab.
+export async function fetchStudentExamResults(studentId: string): Promise<StudentExamResult[]> {
+  const { data } = await api.get<StudentExamResult[]>(`/v1/exams/student/${studentId}`);
+  return data;
+}
