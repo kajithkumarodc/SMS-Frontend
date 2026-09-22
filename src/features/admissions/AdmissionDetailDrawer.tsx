@@ -144,7 +144,7 @@ function AdmissionDetailDrawer({ applicationId, onClose, permissions }: Props) {
     reopenMutation.isPending;
 
   return (
-    <Drawer title="Application review" width={640} open={open} onClose={onClose} destroyOnClose>
+    <Drawer title="Application review" width={640} open={open} onClose={onClose} destroyOnHidden>
       {detailQuery.isPending ? (
         <Skeleton active paragraph={{ rows: 10 }} />
       ) : !application ? (

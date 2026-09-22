@@ -102,7 +102,7 @@ function CreateCycleModal({ open, onClose }: { open: boolean; onClose: () => voi
       onOk={submit}
       okText="Create"
       confirmLoading={mutation.isPending}
-      destroyOnClose
+      destroyOnHidden
       maskClosable={!mutation.isPending}
     >
       <Form layout="vertical" requiredMark="optional" onFinish={submit}>
