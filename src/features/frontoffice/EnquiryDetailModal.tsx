@@ -112,7 +112,11 @@ function EnquiryDetailModal({ enquiry, onClose, onEdit, canEdit, canFollowUp, ca
           <Descriptions.Item label="Email" span={2}>
             {enquiry.email || <Text type="secondary">—</Text>}
           </Descriptions.Item>
-          <Descriptions.Item label="Source">{enquiry.sourceName || <Text type="secondary">—</Text>}</Descriptions.Item>
+          <Descriptions.Item label="Class">{enquiry.className || <Text type="secondary">Not specified</Text>}</Descriptions.Item>
+          <Descriptions.Item label="Source">{enquiry.sourceName || <Text type="secondary">Not specified</Text>}</Descriptions.Item>
+          <Descriptions.Item label="Academic year">
+            {enquiry.academicYearName || <Text type="secondary">Not specified</Text>}
+          </Descriptions.Item>
           <Descriptions.Item label="Assigned to">
             {enquiry.assignedStaffName || <Text type="secondary">Unassigned</Text>}
           </Descriptions.Item>

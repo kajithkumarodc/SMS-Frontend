@@ -13,9 +13,12 @@ export type Enquiry = {
   phone: string | null;
   email: string | null;
   classId: string | null;
+  className: string | null;
   enquiryDate: string;
   sourceId: string | null;
   sourceName: string | null;
+  academicYearId: string | null;
+  academicYearName: string | null;
   assignedStaffUserId: string | null;
   assignedStaffName: string | null;
   followUpDate: string | null;
@@ -52,14 +55,27 @@ export type AssignableStaff = {
   email: string;
 };
 
+/** One row of the "Enquiries by source/class" breakdown. `id` is null for the "Not specified" bucket. */
+export type EnquiryGroupCount = {
+  id: string | null;
+  label: string;
+  count: number;
+};
+
+export type AcademicYearBadge = {
+  id: string;
+  name: string;
+};
+
 export type EnquirySummary = {
   totalEnquiries: number;
   activeEnquiries: number;
   followUpsDue: number;
   converted: number;
   lost: number;
-  bySource: Record<string, number>;
-  byClass: Record<string, number>;
+  bySource: EnquiryGroupCount[];
+  byClass: EnquiryGroupCount[];
+  academicYear: AcademicYearBadge | null;
   recent: Enquiry[];
 };
 
@@ -121,6 +137,7 @@ export type CreateEnquiryInput = {
   sourceId?: string | null;
   assignedStaffUserId?: string | null;
   remarks?: string | null;
+  academicYearId?: string | null;
 };
 
 export async function createEnquiry(input: CreateEnquiryInput): Promise<Enquiry> {
@@ -137,6 +154,7 @@ export type UpdateEnquiryInput = {
   sourceId?: string | null;
   assignedStaffUserId?: string | null;
   remarks?: string | null;
+  academicYearId?: string | null;
 };
 
 export async function updateEnquiry(id: string, input: UpdateEnquiryInput): Promise<Enquiry> {

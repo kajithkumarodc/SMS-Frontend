@@ -7,17 +7,20 @@ import { App, DatePicker, Form, Input, Modal, Select, Space } from 'antd';
 import dayjs from 'dayjs';
 import { createEnquiry, fetchAssignableStaff, fetchEnquirySources } from '../../api/enquiries';
 import { fetchClasses } from '../../api/classes';
+import { fetchAcademicYears } from '../../api/academicYears';
 import { ASSIGNABLE_STAFF_KEY, ENQUIRIES_KEY, ENQUIRY_SOURCES_KEY, ENQUIRY_SUMMARY_KEY } from './queryKeys';
 import { CLASSES_QUERY_KEY } from '../classes/queryKeys';
+import { ACADEMIC_YEARS_KEY } from '../settings/queryKeys';
 
 const schema = z.object({
   applicantName: z.string().trim().min(1, 'Applicant name is required').max(200, 'Keep this under 200 characters'),
   guardianName: z.string().trim().max(200).optional(),
   phone: z.string().trim().max(30).optional(),
   email: z.string().trim().email('Enter a valid email').max(200).optional().or(z.literal('')),
-  classId: z.string().optional(),
+  classId: z.string().min(1, 'Class is required'),
   enquiryDate: z.string().optional(),
-  sourceId: z.string().optional(),
+  sourceId: z.string().min(1, 'Source is required'),
+  academicYearId: z.string().optional(),
   assignedStaffUserId: z.string().optional(),
   remarks: z.string().optional(),
 });
@@ -32,6 +35,7 @@ const EMPTY: FormValues = {
   classId: '',
   enquiryDate: '',
   sourceId: '',
+  academicYearId: '',
   assignedStaffUserId: '',
   remarks: '',
 };
@@ -48,6 +52,7 @@ function AddEnquiryModal({ open, onClose }: Props) {
   const sourcesQuery = useQuery({ queryKey: ENQUIRY_SOURCES_KEY, queryFn: fetchEnquirySources, enabled: open });
   const staffQuery = useQuery({ queryKey: ASSIGNABLE_STAFF_KEY, queryFn: fetchAssignableStaff, enabled: open });
   const classesQuery = useQuery({ queryKey: CLASSES_QUERY_KEY, queryFn: fetchClasses, enabled: open });
+  const academicYearsQuery = useQuery({ queryKey: ACADEMIC_YEARS_KEY, queryFn: fetchAcademicYears, enabled: open });
 
   const {
     control,
@@ -60,6 +65,12 @@ function AddEnquiryModal({ open, onClose }: Props) {
     if (open) reset(EMPTY);
   }, [open, reset]);
 
+  // Default to whichever academic year is current, same as the rest of the app (Fees, Promotion, ...).
+  useEffect(() => {
+    const current = academicYearsQuery.data?.find((y) => y.current);
+    if (open && current) reset((prev) => ({ ...prev, academicYearId: prev.academicYearId || current.id }));
+  }, [open, academicYearsQuery.data, reset]);
+
   const mutation = useMutation({
     mutationFn: (values: FormValues) =>
       createEnquiry({
@@ -70,6 +81,7 @@ function AddEnquiryModal({ open, onClose }: Props) {
         classId: values.classId || null,
         enquiryDate: values.enquiryDate || null,
         sourceId: values.sourceId || null,
+        academicYearId: values.academicYearId || null,
         assignedStaffUserId: values.assignedStaffUserId || null,
         remarks: values.remarks?.trim() || null,
       }),
@@ -150,10 +162,14 @@ function AddEnquiryModal({ open, onClose }: Props) {
           control={control}
           name="classId"
           render={({ field }) => (
-            <Form.Item label="Class interested in" help="Optional">
+            <Form.Item
+              label="Class / grade applying for"
+              required
+              validateStatus={errors.classId ? 'error' : undefined}
+              help={errors.classId?.message}
+            >
               <Select
                 {...field}
-                allowClear
                 placeholder="Select a class"
                 loading={classesQuery.isLoading}
                 options={(classesQuery.data ?? []).map((c) => ({ value: c.id, label: c.name }))}
@@ -161,27 +177,48 @@ function AddEnquiryModal({ open, onClose }: Props) {
             </Form.Item>
           )}
         />
-        <Controller
-          control={control}
-          name="enquiryDate"
-          render={({ field }) => (
-            <Form.Item label="Enquiry date" help="Defaults to today">
-              <DatePicker
-                style={{ width: '100%' }}
-                value={field.value ? dayjs(field.value) : null}
-                onChange={(d) => field.onChange(d ? d.format('YYYY-MM-DD') : '')}
-              />
-            </Form.Item>
-          )}
-        />
+        <Space.Compact block>
+          <Controller
+            control={control}
+            name="academicYearId"
+            render={({ field }) => (
+              <Form.Item label="Academic year" style={{ width: '50%' }} help="Optional">
+                <Select
+                  {...field}
+                  allowClear
+                  placeholder="Select an academic year"
+                  loading={academicYearsQuery.isLoading}
+                  options={(academicYearsQuery.data ?? []).map((y) => ({ value: y.id, label: y.name }))}
+                />
+              </Form.Item>
+            )}
+          />
+          <Controller
+            control={control}
+            name="enquiryDate"
+            render={({ field }) => (
+              <Form.Item label="Enquiry date" style={{ width: '50%' }} help="Defaults to today">
+                <DatePicker
+                  style={{ width: '100%' }}
+                  value={field.value ? dayjs(field.value) : null}
+                  onChange={(d) => field.onChange(d ? d.format('YYYY-MM-DD') : '')}
+                />
+              </Form.Item>
+            )}
+          />
+        </Space.Compact>
         <Controller
           control={control}
           name="sourceId"
           render={({ field }) => (
-            <Form.Item label="Source" help="Optional">
+            <Form.Item
+              label="Source"
+              required
+              validateStatus={errors.sourceId ? 'error' : undefined}
+              help={errors.sourceId?.message}
+            >
               <Select
                 {...field}
-                allowClear
                 placeholder="Select a source"
                 loading={sourcesQuery.isLoading}
                 options={(sourcesQuery.data ?? []).map((s) => ({ value: s.id, label: s.name }))}

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import {
   Alert,
@@ -25,9 +26,11 @@ import {
   type Enquiry,
   type EnquiryStatus,
 } from '../../api/enquiries';
+import { fetchClasses } from '../../api/classes';
 import { useAuthStore } from '../../store/authStore';
 import { hasPermission } from '../../lib/roles';
 import { ASSIGNABLE_STAFF_KEY, ENQUIRIES_KEY, ENQUIRY_SOURCES_KEY } from './queryKeys';
+import { CLASSES_QUERY_KEY } from '../classes/queryKeys';
 import { ENQUIRY_STATUS_COLOR, ENQUIRY_STATUS_OPTIONS, enquiryStatusLabel } from './status';
 import AddEnquiryModal from './AddEnquiryModal';
 import EditEnquiryModal from './EditEnquiryModal';
@@ -50,9 +53,31 @@ function EnquiriesPage() {
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [q, setQ] = useState('');
   const [status, setStatus] = useState<EnquiryStatus | undefined>();
-  const [sourceId, setSourceId] = useState<string | undefined>();
   const [assignedStaffUserId, setAssignedStaffUserId] = useState<string | undefined>();
   const [dateRange, setDateRange] = useState<[string, string] | undefined>();
+
+  // Source/class are deep-linkable from the Front Office dashboard's breakdown rows
+  // (e.g. `?sourceId=...`), so they live in the URL rather than local-only state.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const sourceId = searchParams.get('sourceId') ?? undefined;
+  const classId = searchParams.get('classId') ?? undefined;
+
+  const setSourceId = (value: string | undefined) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (value) next.set('sourceId', value);
+      else next.delete('sourceId');
+      return next;
+    });
+  };
+  const setClassId = (value: string | undefined) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (value) next.set('classId', value);
+      else next.delete('classId');
+      return next;
+    });
+  };
 
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<Enquiry | null>(null);
@@ -62,6 +87,7 @@ function EnquiriesPage() {
     q: q || undefined,
     status,
     sourceId,
+    classId,
     assignedStaffUserId,
     from: dateRange?.[0],
     to: dateRange?.[1],
@@ -77,6 +103,7 @@ function EnquiriesPage() {
   });
   const sourcesQuery = useQuery({ queryKey: ENQUIRY_SOURCES_KEY, queryFn: fetchEnquirySources, enabled: canView });
   const staffQuery = useQuery({ queryKey: ASSIGNABLE_STAFF_KEY, queryFn: fetchAssignableStaff, enabled: canView });
+  const classesQuery = useQuery({ queryKey: CLASSES_QUERY_KEY, queryFn: fetchClasses, enabled: canView });
 
   if (!canView) {
     return <Result status="403" title="Not available" subTitle="You don't have permission to view enquiries." />;
@@ -111,7 +138,18 @@ function EnquiriesPage() {
       ),
     },
     { title: 'Phone', dataIndex: 'phone', key: 'phone', render: (v: string | null) => v || <Text type="secondary">—</Text> },
-    { title: 'Source', dataIndex: 'sourceName', key: 'sourceName', render: (v: string | null) => v || <Text type="secondary">—</Text> },
+    {
+      title: 'Class',
+      dataIndex: 'className',
+      key: 'className',
+      render: (v: string | null) => v || <Text type="secondary">Not specified</Text>,
+    },
+    {
+      title: 'Source',
+      dataIndex: 'sourceName',
+      key: 'sourceName',
+      render: (v: string | null) => v || <Text type="secondary">Not specified</Text>,
+    },
     {
       title: 'Assigned to',
       dataIndex: 'assignedStaffName',
@@ -210,6 +248,18 @@ function EnquiriesPage() {
             value={sourceId}
             onChange={(v) => {
               setSourceId(v);
+              setPage(1);
+            }}
+          />
+          <Select
+            placeholder="Class"
+            allowClear
+            style={{ width: 160 }}
+            loading={classesQuery.isLoading}
+            options={(classesQuery.data ?? []).map((c) => ({ value: c.id, label: c.name }))}
+            value={classId}
+            onChange={(v) => {
+              setClassId(v);
               setPage(1);
             }}
           />

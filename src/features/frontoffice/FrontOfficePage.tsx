@@ -1,14 +1,37 @@
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Button, Card, Col, Empty, List, Result, Row, Skeleton, Statistic, Tag, Typography, theme } from 'antd';
+import { Alert, Button, Card, Col, Empty, List, Result, Row, Skeleton, Space, Statistic, Tag, Typography, theme } from 'antd';
 import { ArrowRightOutlined, ReloadOutlined } from '@ant-design/icons';
-import { fetchEnquirySummary } from '../../api/enquiries';
+import { fetchEnquirySummary, type EnquiryGroupCount } from '../../api/enquiries';
 import { useAuthStore } from '../../store/authStore';
 import { hasPermission } from '../../lib/roles';
 import { ENQUIRY_SUMMARY_KEY } from './queryKeys';
 import { ENQUIRY_STATUS_COLOR, enquiryStatusLabel } from './status';
 
 const { Title, Text } = Typography;
+
+/** A source/class breakdown row -- clickable (with an arrow affordance) when it has a real id, plain text for "Not specified". */
+function GroupCountRow({ row, onClick }: { row: EnquiryGroupCount; onClick: (row: EnquiryGroupCount) => void }) {
+  const { token } = theme.useToken();
+  if (row.id === null) {
+    return (
+      <List.Item extra={<Text type="secondary">{row.count}</Text>}>
+        <Text type="secondary">{row.label}</Text>
+      </List.Item>
+    );
+  }
+  return (
+    <List.Item style={{ cursor: 'pointer' }} onClick={() => onClick(row)}>
+      <a style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center', gap: token.marginXS }}>
+        <span>{row.label}</span>
+        <Space size={token.marginXS}>
+          <Text strong>{row.count}</Text>
+          <ArrowRightOutlined style={{ fontSize: 12, color: token.colorTextTertiary }} />
+        </Space>
+      </a>
+    </List.Item>
+  );
+}
 
 function FrontOfficePage() {
   const { token } = theme.useToken();
@@ -113,30 +136,52 @@ function FrontOfficePage() {
 
           <Row gutter={[16, 16]} style={{ marginBottom: token.marginLG }}>
             <Col xs={24} md={12}>
-              <Card title="Enquiries by source" size="small" style={{ boxShadow: token.boxShadowTertiary }}>
-                {Object.keys(summary!.bySource).length === 0 ? (
+              <Card
+                title="Enquiries by source"
+                size="small"
+                style={{ boxShadow: token.boxShadowTertiary }}
+                extra={
+                  summary!.academicYear && (
+                    <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
+                      {summary!.academicYear.name}
+                    </Text>
+                  )
+                }
+              >
+                {summary!.bySource.length === 0 ? (
                   <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No data yet" />
                 ) : (
                   <List
                     size="small"
-                    dataSource={Object.entries(summary!.bySource).sort((a, b) => b[1] - a[1])}
-                    renderItem={([name, count]) => (
-                      <List.Item extra={<Text strong>{count}</Text>}>{name}</List.Item>
+                    dataSource={summary!.bySource}
+                    renderItem={(row) => (
+                      <GroupCountRow row={row} onClick={(r) => navigate(`/app/enquiries?sourceId=${r.id}`)} />
                     )}
                   />
                 )}
               </Card>
             </Col>
             <Col xs={24} md={12}>
-              <Card title="Enquiries by class" size="small" style={{ boxShadow: token.boxShadowTertiary }}>
-                {Object.keys(summary!.byClass).length === 0 ? (
+              <Card
+                title="Enquiries by class"
+                size="small"
+                style={{ boxShadow: token.boxShadowTertiary }}
+                extra={
+                  summary!.academicYear && (
+                    <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
+                      {summary!.academicYear.name}
+                    </Text>
+                  )
+                }
+              >
+                {summary!.byClass.length === 0 ? (
                   <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No data yet" />
                 ) : (
                   <List
                     size="small"
-                    dataSource={Object.entries(summary!.byClass).sort((a, b) => b[1] - a[1])}
-                    renderItem={([name, count]) => (
-                      <List.Item extra={<Text strong>{count}</Text>}>{name}</List.Item>
+                    dataSource={summary!.byClass}
+                    renderItem={(row) => (
+                      <GroupCountRow row={row} onClick={(r) => navigate(`/app/enquiries?classId=${r.id}`)} />
                     )}
                   />
                 )}
@@ -161,7 +206,7 @@ function FrontOfficePage() {
                           {item.applicantName} · {item.enquiryNumber}
                         </a>
                       }
-                      description={item.sourceName ?? 'Source unspecified'}
+                      description={item.sourceName ?? 'Not specified'}
                     />
                   </List.Item>
                 )}

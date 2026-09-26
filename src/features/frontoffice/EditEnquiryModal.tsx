@@ -6,8 +6,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { App, Form, Input, Modal, Select, Space } from 'antd';
 import { fetchAssignableStaff, fetchEnquirySources, updateEnquiry, type Enquiry } from '../../api/enquiries';
 import { fetchClasses } from '../../api/classes';
+import { fetchAcademicYears } from '../../api/academicYears';
 import { ASSIGNABLE_STAFF_KEY, ENQUIRIES_KEY, ENQUIRY_KEY, ENQUIRY_SOURCES_KEY } from './queryKeys';
 import { CLASSES_QUERY_KEY } from '../classes/queryKeys';
+import { ACADEMIC_YEARS_KEY } from '../settings/queryKeys';
 
 const schema = z.object({
   applicantName: z.string().trim().min(1, 'Applicant name is required').max(200, 'Keep this under 200 characters'),
@@ -16,6 +18,7 @@ const schema = z.object({
   email: z.string().trim().email('Enter a valid email').max(200).optional().or(z.literal('')),
   classId: z.string().optional(),
   sourceId: z.string().optional(),
+  academicYearId: z.string().optional(),
   assignedStaffUserId: z.string().optional(),
   remarks: z.string().optional(),
 });
@@ -36,6 +39,7 @@ function EditEnquiryModal({ enquiry, onClose }: Props) {
   const sourcesQuery = useQuery({ queryKey: ENQUIRY_SOURCES_KEY, queryFn: fetchEnquirySources, enabled: open });
   const staffQuery = useQuery({ queryKey: ASSIGNABLE_STAFF_KEY, queryFn: fetchAssignableStaff, enabled: open });
   const classesQuery = useQuery({ queryKey: CLASSES_QUERY_KEY, queryFn: fetchClasses, enabled: open });
+  const academicYearsQuery = useQuery({ queryKey: ACADEMIC_YEARS_KEY, queryFn: fetchAcademicYears, enabled: open });
 
   const {
     control,
@@ -44,7 +48,17 @@ function EditEnquiryModal({ enquiry, onClose }: Props) {
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { applicantName: '', guardianName: '', phone: '', email: '', classId: '', sourceId: '', assignedStaffUserId: '', remarks: '' },
+    defaultValues: {
+      applicantName: '',
+      guardianName: '',
+      phone: '',
+      email: '',
+      classId: '',
+      sourceId: '',
+      academicYearId: '',
+      assignedStaffUserId: '',
+      remarks: '',
+    },
     mode: 'onTouched',
   });
 
@@ -57,6 +71,7 @@ function EditEnquiryModal({ enquiry, onClose }: Props) {
         email: enquiry.email ?? '',
         classId: enquiry.classId ?? '',
         sourceId: enquiry.sourceId ?? '',
+        academicYearId: enquiry.academicYearId ?? '',
         assignedStaffUserId: enquiry.assignedStaffUserId ?? '',
         remarks: enquiry.remarks ?? '',
       });
@@ -73,6 +88,7 @@ function EditEnquiryModal({ enquiry, onClose }: Props) {
         email: values.email?.trim() || null,
         classId: values.classId || null,
         sourceId: values.sourceId || null,
+        academicYearId: values.academicYearId || null,
         assignedStaffUserId: values.assignedStaffUserId || null,
         remarks: values.remarks?.trim() || null,
       });
@@ -176,6 +192,21 @@ function EditEnquiryModal({ enquiry, onClose }: Props) {
                 placeholder="Select a source"
                 loading={sourcesQuery.isLoading}
                 options={(sourcesQuery.data ?? []).map((s) => ({ value: s.id, label: s.name }))}
+              />
+            </Form.Item>
+          )}
+        />
+        <Controller
+          control={control}
+          name="academicYearId"
+          render={({ field }) => (
+            <Form.Item label="Academic year" help="Optional">
+              <Select
+                {...field}
+                allowClear
+                placeholder="Select an academic year"
+                loading={academicYearsQuery.isLoading}
+                options={(academicYearsQuery.data ?? []).map((y) => ({ value: y.id, label: y.name }))}
               />
             </Form.Item>
           )}
