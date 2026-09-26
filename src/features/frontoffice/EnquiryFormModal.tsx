@@ -6,7 +6,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { App, Button, Col, DatePicker, Form, Input, InputNumber, Modal, Row, Select, theme } from 'antd';
 import { CloseOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import { isAxiosError } from 'axios';
 import {
   createEnquiry,
   fetchAssignableStaff,
@@ -18,6 +17,7 @@ import {
 } from '../../api/enquiries';
 import { fetchClasses } from '../../api/classes';
 import { API_DATE_FORMAT, DISPLAY_DATE_FORMAT, todayApiDate } from '../../lib/dates';
+import { serverMessage } from '../../lib/apiErrors';
 import {
   ASSIGNABLE_STAFF_KEY,
   ENQUIRIES_KEY,
@@ -108,15 +108,6 @@ function toInput(v: FormValues): EnquiryInput {
     classId: v.classId || null,
     numberOfChildren: v.numberOfChildren,
   };
-}
-
-/** The backend's problem+json `detail`, when it sent one (400/404 validation messages). */
-function serverMessage(error: unknown): string | undefined {
-  if (isAxiosError(error)) {
-    const detail = (error.response?.data as { detail?: unknown } | undefined)?.detail;
-    if (typeof detail === 'string' && detail) return detail;
-  }
-  return undefined;
 }
 
 type Props = {

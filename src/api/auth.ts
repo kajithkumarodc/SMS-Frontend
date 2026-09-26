@@ -53,3 +53,13 @@ export async function logout(): Promise<void> {
     // Best effort — the local session is cleared regardless.
   }
 }
+
+/**
+ * Re-reads the signed-in user's roles and permissions from the server (same session expiry) and
+ * updates the auth cookie to match -- so permissions granted since login, such as a newly added
+ * page's, apply without logging out. Rejects on any error; a 401 is already handled by the api client.
+ */
+export async function refreshSession(): Promise<AuthUser> {
+  const { data } = await api.post<LoginResponseBody>('/v1/me/session');
+  return data.user;
+}

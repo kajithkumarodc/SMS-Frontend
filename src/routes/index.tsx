@@ -15,7 +15,12 @@ import { TransportPage } from '../features/transport';
 import { HostelPage } from '../features/hostel';
 import { StaffPage, LeaveRequestsPage } from '../features/staff';
 import { SettingsPage } from '../features/settings';
-import { FrontOfficePage, EnquiriesPage, FrontOfficePlaceholderPage } from '../features/frontoffice';
+import {
+  FrontOfficePage,
+  EnquiriesPage,
+  FrontOfficePlaceholderPage,
+  VisitorBookPage,
+} from '../features/frontoffice';
 import { PromotionPage } from '../features/promotion';
 import { AdmissionsPage, AdmissionCyclesPage } from '../features/admissions';
 import { AdmissionApplyPage, AdmissionStatusPage, ActivateAccountPage } from '../features/admissions-public';
@@ -81,10 +86,7 @@ function AppRoutes() {
           <Route path="front-office">
             <Route index element={<FrontOfficePage />} />
             <Route path="admission-enquiry" element={<EnquiriesPage />} />
-            <Route
-              path="visitor-book"
-              element={<FrontOfficePlaceholderPage title="Visitor Book" description="Log visitors to the school: who came, whom they met, purpose, and in/out times." />}
-            />
+            <Route path="visitor-book" element={<VisitorBookPage />} />
             <Route
               path="phone-call-log"
               element={<FrontOfficePlaceholderPage title="Phone Call Log" description="Record incoming and outgoing calls with caller details, purpose and follow-up dates." />}

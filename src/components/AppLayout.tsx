@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Avatar, Badge, Button, Input, Layout, Menu, Space, Typography, theme } from 'antd';
 import type { MenuProps } from 'antd';
@@ -30,7 +30,7 @@ import {
   UserOutlined,
   WalletOutlined,
 } from '@ant-design/icons';
-import { logout as logoutRequest } from '../api/auth';
+import { logout as logoutRequest, refreshSession } from '../api/auth';
 import { useAuthStore } from '../store/authStore';
 import { hasAnyRole, hasPermission, hasRole, ROLE } from '../lib/roles';
 import { ChangePasswordModal } from '../features/settings';
@@ -43,6 +43,8 @@ const LOGIN_ROUTE = '/login';
 type NavLink = {
   key: string;
   label: string;
+  /** Defaults to true. A group is shown only if at least one of its links is visible. */
+  visible?: boolean;
 };
 
 type NavItem = NavLink & {
@@ -59,11 +61,35 @@ function AppLayout() {
   const location = useLocation();
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
+  const saveUser = useAuthStore((state) => state.login);
+
+  // Permissions are fixed into the session at login. Re-read them when the app opens and whenever the tab
+  // regains focus, so pages added since (and role changes) show up without logging out.
+  useEffect(() => {
+    let cancelled = false;
+    const sync = () => {
+      refreshSession()
+        .then((fresh) => {
+          if (!cancelled) saveUser(fresh);
+        })
+        .catch(() => {
+          // Offline or a transient error: keep the current menu. A 401 already signs the user out.
+        });
+    };
+    sync();
+    window.addEventListener('focus', sync);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('focus', sync);
+    };
+  }, [saveUser]);
   const { token } = theme.useToken();
   const [loggingOut, setLoggingOut] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
   const primaryRole = user?.roles?.[0];
+
+  const canEnquiries = hasPermission(user?.permissions, 'ENQUIRY_VIEW');
 
   const navItems: NavItem[] = useMemo(
     () => [
@@ -77,15 +103,16 @@ function AppLayout() {
         key: FRONT_OFFICE_GROUP,
         label: 'Front Office',
         icon: <ContactsOutlined />,
-        visible: hasPermission(user?.permissions, 'ENQUIRY_VIEW'),
+        visible: true,
+        // Not-yet-built pages stay on ENQUIRY_VIEW until each gets its own permissions.
         children: [
-          { key: '/app/front-office/admission-enquiry', label: 'Admission Enquiry' },
-          { key: '/app/front-office/visitor-book', label: 'Visitor Book' },
-          { key: '/app/front-office/phone-call-log', label: 'Phone Call Log' },
-          { key: '/app/front-office/postal-dispatch', label: 'Postal Dispatch' },
-          { key: '/app/front-office/postal-receive', label: 'Postal Receive' },
-          { key: '/app/front-office/complaints', label: 'Complain' },
-          { key: '/app/front-office/setup', label: 'Setup Front Office' },
+          { key: '/app/front-office/admission-enquiry', label: 'Admission Enquiry', visible: canEnquiries },
+          { key: '/app/front-office/visitor-book', label: 'Visitor Book', visible: hasPermission(user?.permissions, 'VISITOR_VIEW') },
+          { key: '/app/front-office/phone-call-log', label: 'Phone Call Log', visible: canEnquiries },
+          { key: '/app/front-office/postal-dispatch', label: 'Postal Dispatch', visible: canEnquiries },
+          { key: '/app/front-office/postal-receive', label: 'Postal Receive', visible: canEnquiries },
+          { key: '/app/front-office/complaints', label: 'Complain', visible: canEnquiries },
+          { key: '/app/front-office/setup', label: 'Setup Front Office', visible: canEnquiries },
         ],
       },
       {
@@ -230,7 +257,9 @@ function AppLayout() {
     [user?.roles, user?.permissions],
   );
 
-  const visibleItems = navItems.filter((item) => item.visible);
+  const visibleItems = navItems
+    .map((item) => (item.children ? { ...item, children: item.children.filter((c) => c.visible !== false) } : item))
+    .filter((item) => item.visible && (!item.children || item.children.length > 0));
 
   const menuItems: MenuProps['items'] = visibleItems.map((item) =>
     item.children
