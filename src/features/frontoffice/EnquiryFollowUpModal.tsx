@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -93,7 +93,10 @@ function EnquiryFollowUpModal({ enquiry: initial, onClose, onEdit, canFollowUp, 
     queryFn: () => fetchFollowUps(id!),
     enabled: open,
   });
-  const enquiry = enquiryQuery.data ?? initial;
+  // Keep the last enquiry while the modal animates closed -- unmounting mid-close leaves its overlay behind.
+  const lastEnquiry = useRef<Enquiry | null>(null);
+  if (open) lastEnquiry.current = enquiryQuery.data ?? initial;
+  const enquiry = open ? enquiryQuery.data ?? initial : lastEnquiry.current;
 
   const {
     control,

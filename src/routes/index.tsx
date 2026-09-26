@@ -20,6 +20,7 @@ import {
   EnquiriesPage,
   FrontOfficePlaceholderPage,
   VisitorBookPage,
+  PhoneCallLogPage,
 } from '../features/frontoffice';
 import { PromotionPage } from '../features/promotion';
 import { AdmissionsPage, AdmissionCyclesPage } from '../features/admissions';
@@ -87,10 +88,7 @@ function AppRoutes() {
             <Route index element={<FrontOfficePage />} />
             <Route path="admission-enquiry" element={<EnquiriesPage />} />
             <Route path="visitor-book" element={<VisitorBookPage />} />
-            <Route
-              path="phone-call-log"
-              element={<FrontOfficePlaceholderPage title="Phone Call Log" description="Record incoming and outgoing calls with caller details, purpose and follow-up dates." />}
-            />
+            <Route path="phone-call-log" element={<PhoneCallLogPage />} />
             <Route
               path="postal-dispatch"
               element={<FrontOfficePlaceholderPage title="Postal Dispatch" description="Track letters and parcels sent out from the school, with reference numbers and addresses." />}

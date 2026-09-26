@@ -30,6 +30,10 @@ type Props = {
   exporting: ExportKind | null;
   canExport: boolean;
   canPrint: boolean;
+  /** Which export buttons to offer (default: all). */
+  exportKinds?: ExportKind[];
+  /** Show the show/hide-columns menu (default true). */
+  showColumnToggle?: boolean;
 };
 
 /** Search box, page size, export buttons and a show/hide-columns menu for list pages. */
@@ -47,6 +51,8 @@ function DataTableToolbar({
   exporting,
   canExport,
   canPrint,
+  exportKinds = ['copy', 'excel', 'csv', 'pdf', 'print'],
+  showColumnToggle = true,
 }: Props) {
   const { token } = theme.useToken();
 
@@ -96,11 +102,12 @@ function DataTableToolbar({
           style={{ width: 80 }}
         />
         <Space size={0}>
-          {canExport && exportButton('copy', 'Copy', <CopyOutlined />)}
-          {canExport && exportButton('excel', 'Excel', <FileExcelOutlined />)}
-          {canExport && exportButton('csv', 'CSV', <FileTextOutlined />)}
-          {canExport && exportButton('pdf', 'PDF', <FilePdfOutlined />)}
-          {canPrint && exportButton('print', 'Print', <PrinterOutlined />)}
+          {canExport && exportKinds.includes('copy') && exportButton('copy', 'Copy', <CopyOutlined />)}
+          {canExport && exportKinds.includes('excel') && exportButton('excel', 'Excel', <FileExcelOutlined />)}
+          {canExport && exportKinds.includes('csv') && exportButton('csv', 'CSV', <FileTextOutlined />)}
+          {canExport && exportKinds.includes('pdf') && exportButton('pdf', 'PDF', <FilePdfOutlined />)}
+          {canPrint && exportKinds.includes('print') && exportButton('print', 'Print', <PrinterOutlined />)}
+          {showColumnToggle && (
           <Dropdown
             trigger={['click']}
             popupRender={() => (
@@ -130,6 +137,7 @@ function DataTableToolbar({
               <Button type="text" aria-label="Show or hide columns" icon={<InsertRowRightOutlined />} />
             </Tooltip>
           </Dropdown>
+          )}
         </Space>
       </Space>
     </div>

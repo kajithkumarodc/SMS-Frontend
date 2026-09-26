@@ -108,7 +108,7 @@ function AppLayout() {
         children: [
           { key: '/app/front-office/admission-enquiry', label: 'Admission Enquiry', visible: canEnquiries },
           { key: '/app/front-office/visitor-book', label: 'Visitor Book', visible: hasPermission(user?.permissions, 'VISITOR_VIEW') },
-          { key: '/app/front-office/phone-call-log', label: 'Phone Call Log', visible: canEnquiries },
+          { key: '/app/front-office/phone-call-log', label: 'Phone Call Log', visible: hasPermission(user?.permissions, 'PHONE_CALL_VIEW') },
           { key: '/app/front-office/postal-dispatch', label: 'Postal Dispatch', visible: canEnquiries },
           { key: '/app/front-office/postal-receive', label: 'Postal Receive', visible: canEnquiries },
           { key: '/app/front-office/complaints', label: 'Complain', visible: canEnquiries },
