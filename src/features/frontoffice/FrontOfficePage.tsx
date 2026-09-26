@@ -124,7 +124,7 @@ function FrontOfficePage() {
               <Card
                 size="small"
                 hoverable
-                onClick={() => navigate('/app/enquiries')}
+                onClick={() => navigate('/app/front-office/admission-enquiry')}
                 style={{ boxShadow: token.boxShadowTertiary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
                 <Button type="link" icon={<ArrowRightOutlined />} iconPosition="end">
@@ -155,7 +155,7 @@ function FrontOfficePage() {
                     size="small"
                     dataSource={summary!.bySource}
                     renderItem={(row) => (
-                      <GroupCountRow row={row} onClick={(r) => navigate(`/app/enquiries?sourceId=${r.id}`)} />
+                      <GroupCountRow row={row} onClick={(r) => navigate(`/app/front-office/admission-enquiry?sourceId=${r.id}`)} />
                     )}
                   />
                 )}
@@ -181,7 +181,7 @@ function FrontOfficePage() {
                     size="small"
                     dataSource={summary!.byClass}
                     renderItem={(row) => (
-                      <GroupCountRow row={row} onClick={(r) => navigate(`/app/enquiries?classId=${r.id}`)} />
+                      <GroupCountRow row={row} onClick={(r) => navigate(`/app/front-office/admission-enquiry?classId=${r.id}`)} />
                     )}
                   />
                 )}
@@ -202,7 +202,7 @@ function FrontOfficePage() {
                   >
                     <List.Item.Meta
                       title={
-                        <a onClick={() => navigate('/app/enquiries')}>
+                        <a onClick={() => navigate('/app/front-office/admission-enquiry')}>
                           {item.applicantName} · {item.enquiryNumber}
                         </a>
                       }

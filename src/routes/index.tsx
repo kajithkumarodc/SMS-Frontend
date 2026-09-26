@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import ProtectedRoute from '../components/ProtectedRoute';
 import AppLayout from '../components/AppLayout';
 import { LoginForm } from '../features/auth';
@@ -15,7 +15,7 @@ import { TransportPage } from '../features/transport';
 import { HostelPage } from '../features/hostel';
 import { StaffPage, LeaveRequestsPage } from '../features/staff';
 import { SettingsPage } from '../features/settings';
-import { FrontOfficePage, EnquiriesPage } from '../features/frontoffice';
+import { FrontOfficePage, EnquiriesPage, FrontOfficePlaceholderPage } from '../features/frontoffice';
 import { PromotionPage } from '../features/promotion';
 import { AdmissionsPage, AdmissionCyclesPage } from '../features/admissions';
 import { AdmissionApplyPage, AdmissionStatusPage, ActivateAccountPage } from '../features/admissions-public';
@@ -45,6 +45,12 @@ function LoginRoute() {
   return <LoginForm />;
 }
 
+/** Old enquiries URL -- keeps bookmarks and `?sourceId=`/`?classId=` filters working. */
+function EnquiriesRedirect() {
+  const { search } = useLocation();
+  return <Navigate to={`/app/front-office/admission-enquiry${search}`} replace />;
+}
+
 function AppRoutes() {
   return (
     <Routes>
@@ -72,8 +78,35 @@ function AppRoutes() {
           <Route path="leave-requests" element={<LeaveRequestsPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="promotion" element={<PromotionPage />} />
-          <Route path="front-office" element={<FrontOfficePage />} />
-          <Route path="enquiries" element={<EnquiriesPage />} />
+          <Route path="front-office">
+            <Route index element={<FrontOfficePage />} />
+            <Route path="admission-enquiry" element={<EnquiriesPage />} />
+            <Route
+              path="visitor-book"
+              element={<FrontOfficePlaceholderPage title="Visitor Book" description="Log visitors to the school: who came, whom they met, purpose, and in/out times." />}
+            />
+            <Route
+              path="phone-call-log"
+              element={<FrontOfficePlaceholderPage title="Phone Call Log" description="Record incoming and outgoing calls with caller details, purpose and follow-up dates." />}
+            />
+            <Route
+              path="postal-dispatch"
+              element={<FrontOfficePlaceholderPage title="Postal Dispatch" description="Track letters and parcels sent out from the school, with reference numbers and addresses." />}
+            />
+            <Route
+              path="postal-receive"
+              element={<FrontOfficePlaceholderPage title="Postal Receive" description="Track letters and parcels received by the school and who they were handed to." />}
+            />
+            <Route
+              path="complaints"
+              element={<FrontOfficePlaceholderPage title="Complaints" description="Register complaints from parents, students or visitors and track them to resolution." />}
+            />
+            <Route
+              path="setup"
+              element={<FrontOfficePlaceholderPage title="Setup Front Office" description="Manage the lists used across Front Office: purposes, complaint types, sources and references." />}
+            />
+          </Route>
+          <Route path="enquiries" element={<EnquiriesRedirect />} />
           <Route path="admissions" element={<AdmissionsPage />} />
           <Route path="admission-cycles" element={<AdmissionCyclesPage />} />
           <Route path="my-profile" element={<MyProfilePage />} />

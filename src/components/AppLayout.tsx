@@ -40,12 +40,19 @@ const { Text } = Typography;
 
 const LOGIN_ROUTE = '/login';
 
-type NavItem = {
+type NavLink = {
   key: string;
   label: string;
+};
+
+type NavItem = NavLink & {
   icon: ReactNode;
   visible: boolean;
+  /** When set, the item is a collapsible group and `key` is only its open/close key, not a route. */
+  children?: NavLink[];
 };
+
+const FRONT_OFFICE_GROUP = 'group:front-office';
 
 function AppLayout() {
   const navigate = useNavigate();
@@ -67,16 +74,19 @@ function AppLayout() {
         visible: true,
       },
       {
-        key: '/app/front-office',
+        key: FRONT_OFFICE_GROUP,
         label: 'Front Office',
         icon: <ContactsOutlined />,
         visible: hasPermission(user?.permissions, 'ENQUIRY_VIEW'),
-      },
-      {
-        key: '/app/enquiries',
-        label: 'Enquiries',
-        icon: <ContactsOutlined />,
-        visible: hasPermission(user?.permissions, 'ENQUIRY_VIEW'),
+        children: [
+          { key: '/app/front-office/admission-enquiry', label: 'Admission Enquiry' },
+          { key: '/app/front-office/visitor-book', label: 'Visitor Book' },
+          { key: '/app/front-office/phone-call-log', label: 'Phone Call Log' },
+          { key: '/app/front-office/postal-dispatch', label: 'Postal Dispatch' },
+          { key: '/app/front-office/postal-receive', label: 'Postal Receive' },
+          { key: '/app/front-office/complaints', label: 'Complain' },
+          { key: '/app/front-office/setup', label: 'Setup Front Office' },
+        ],
       },
       {
         key: '/app/admissions',
@@ -220,12 +230,38 @@ function AppLayout() {
     [user?.roles, user?.permissions],
   );
 
-  const menuItems: MenuProps['items'] = navItems
-    .filter((item) => item.visible)
-    .map((item) => ({ key: item.key, label: item.label, icon: item.icon }));
+  const visibleItems = navItems.filter((item) => item.visible);
 
-  const selectedKey =
-    navItems.find((item) => location.pathname.startsWith(item.key))?.key ?? '/app/dashboard';
+  const menuItems: MenuProps['items'] = visibleItems.map((item) =>
+    item.children
+      ? {
+          key: item.key,
+          label: item.label,
+          icon: item.icon,
+          children: item.children.map((child) => ({ key: child.key, label: child.label })),
+        }
+      : { key: item.key, label: item.label, icon: item.icon },
+  );
+
+  // Longest matching route wins, so /app/front-office/visitor-book selects Visitor Book.
+  const routeLinks = visibleItems.flatMap((item): (NavLink & { group?: string })[] =>
+    item.children ? item.children.map((child) => ({ ...child, group: item.key })) : [{ key: item.key, label: item.label }],
+  );
+  const selectedLink = routeLinks
+    .filter((link) => location.pathname.startsWith(link.key))
+    .sort((a, b) => b.key.length - a.key.length)[0];
+  const selectedKey = selectedLink?.key ?? '/app/dashboard';
+
+  const [openKeys, setOpenKeys] = useState<string[]>(() => (selectedLink?.group ? [selectedLink.group] : []));
+  // Auto-open a group when navigation enters it, but let the user collapse it afterwards.
+  const activeGroup = selectedLink?.group;
+  const [lastActiveGroup, setLastActiveGroup] = useState(activeGroup);
+  if (activeGroup !== lastActiveGroup) {
+    setLastActiveGroup(activeGroup);
+    if (activeGroup && !openKeys.includes(activeGroup)) {
+      setOpenKeys([...openKeys, activeGroup]);
+    }
+  }
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -293,6 +329,8 @@ function AppLayout() {
             data-testid="main-nav"
             mode="inline"
             selectedKeys={[selectedKey]}
+            openKeys={openKeys}
+            onOpenChange={setOpenKeys}
             items={menuItems}
             onClick={({ key }) => navigate(key)}
             style={{ border: 'none', paddingInline: token.paddingXS }}
