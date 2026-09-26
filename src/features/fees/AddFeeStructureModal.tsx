@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Controller, useFieldArray, useForm } from 'react-hook-form';
+import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form';
+import { useSoleSchool } from '../../hooks/useSoleSchool';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -96,12 +97,17 @@ function AddFeeStructureModal({ open, onClose }: Props) {
     control,
     handleSubmit,
     reset,
+    setValue: setFormValue,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: EMPTY,
     mode: 'onTouched',
   });
+  // One school only (V38): fill it in automatically and hide the picker.
+  const soleSchoolId = useSoleSchool(schoolsQuery.data, useWatch({ control, name: 'schoolId' }), (id) =>
+    setFormValue('schoolId', id),
+  );
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
 
@@ -169,6 +175,7 @@ function AddFeeStructureModal({ open, onClose }: Props) {
 
       <Form layout="vertical" requiredMark="optional" onFinish={submit}>
         <Space.Compact block style={{ marginBottom: 0 }}>
+          {!soleSchoolId && (
           <Controller
             control={control}
             name="schoolId"
@@ -192,6 +199,7 @@ function AddFeeStructureModal({ open, onClose }: Props) {
               </Form.Item>
             )}
           />
+          )}
         </Space.Compact>
 
         <div style={{ display: 'flex', gap: 16 }}>

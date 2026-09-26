@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
+import { useSoleSchool } from '../../hooks/useSoleSchool';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -70,8 +71,13 @@ function CreateCycleModal({ open, onClose }: { open: boolean; onClose: () => voi
     control,
     handleSubmit,
     reset,
+    setValue: setFormValue,
     formState: { errors },
   } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: EMPTY, mode: 'onTouched' });
+  // One school only (V38): fill it in automatically and hide the picker.
+  const soleSchoolId = useSoleSchool(schoolsQuery.data, useWatch({ control, name: 'schoolId' }), (id) =>
+    setFormValue('schoolId', id),
+  );
 
   const mutation = useMutation({
     mutationFn: (values: FormValues) =>
@@ -106,6 +112,7 @@ function CreateCycleModal({ open, onClose }: { open: boolean; onClose: () => voi
       maskClosable={!mutation.isPending}
     >
       <Form layout="vertical" requiredMark="optional" onFinish={submit}>
+        {!soleSchoolId && (
         <Controller
           control={control}
           name="schoolId"
@@ -120,6 +127,7 @@ function CreateCycleModal({ open, onClose }: { open: boolean; onClose: () => voi
             </Form.Item>
           )}
         />
+        )}
         <Controller
           control={control}
           name="academicYearId"

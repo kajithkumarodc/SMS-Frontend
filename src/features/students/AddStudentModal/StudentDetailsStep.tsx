@@ -13,6 +13,8 @@ type Props = {
   setValue: UseFormSetValue<FormValues>;
   schoolOptions: { value: string; label: string }[];
   schoolsLoading: boolean;
+  /** True when there is only one school: it's selected automatically, so the picker is hidden. */
+  hideSchool: boolean;
   classes: SchoolClass[];
   selectedSchoolId: string;
   selectedClassId: string;
@@ -27,6 +29,7 @@ function StudentDetailsStep({
   setValue,
   schoolOptions,
   schoolsLoading,
+  hideSchool,
   classes,
   selectedSchoolId,
   selectedClassId,
@@ -51,6 +54,7 @@ function StudentDetailsStep({
 
   return (
     <div>
+      {!hideSchool && (
       <Controller
         control={control}
         name="schoolId"
@@ -78,6 +82,7 @@ function StudentDetailsStep({
           </Form.Item>
         )}
       />
+      )}
 
       <div style={gridStyle}>
         <Controller

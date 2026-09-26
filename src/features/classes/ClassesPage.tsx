@@ -1,26 +1,32 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Alert,
+  App,
   Button,
   Card,
   Collapse,
   Empty,
+  Popconfirm,
   Result,
   Skeleton,
   Space,
   Tag,
+  Tooltip,
   Typography,
   theme,
 } from 'antd';
-import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
+import { DeleteOutlined, EditOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import {
+  deleteSection,
   fetchClasses,
   fetchClassSubjects,
   fetchSubjects,
   type SchoolClass,
+  type Section,
   type Subject,
 } from '../../api/classes';
+import { serverMessage } from '../../lib/apiErrors';
 import { useAuthStore } from '../../store/authStore';
 import { hasRole, ROLE } from '../../lib/roles';
 import { CLASSES_QUERY_KEY, CLASS_SUBJECTS_QUERY_KEY, SUBJECTS_QUERY_KEY } from './queryKeys';
@@ -38,7 +44,25 @@ function ClassesPage() {
 
   const [addClassOpen, setAddClassOpen] = useState(false);
   const [addSubjectOpen, setAddSubjectOpen] = useState(false);
-  const [sectionTarget, setSectionTarget] = useState<{ id: string; name: string } | null>(null);
+  const [sectionTarget, setSectionTarget] = useState<{
+    id: string;
+    name: string;
+    section?: { id: string; name: string };
+  } | null>(null);
+  const { message } = App.useApp();
+  const queryClient = useQueryClient();
+
+  // Deleting only removes an empty section; the class is never touched. The server refuses (409, with a
+  // message naming how many students) while students are still in it.
+  const deleteSectionMutation = useMutation({
+    mutationFn: ({ cls, section }: { cls: SchoolClass; section: Section }) =>
+      deleteSection(cls.id, section.id).then(() => ({ cls, section })),
+    onSuccess: ({ cls, section }) => {
+      message.success(`Section ${section.name} removed from ${cls.name}`);
+      void queryClient.invalidateQueries({ queryKey: CLASSES_QUERY_KEY });
+    },
+    onError: (error) => message.error(serverMessage(error) ?? 'Could not delete the section. Please try again.', 6),
+  });
 
   const classesQuery = useQuery({
     queryKey: CLASSES_QUERY_KEY,
@@ -97,8 +121,36 @@ function ClassesPage() {
           ) : (
             <Space size={[token.marginXS, token.marginXS]} wrap>
               {cls.sections.map((section) => (
-                <Tag key={section.id} style={{ marginInlineEnd: 0 }}>
-                  {section.name}
+                <Tag key={section.id} style={{ marginInlineEnd: 0, paddingInlineEnd: 2 }} data-testid={`section-${cls.name}-${section.name}`}>
+                  <Space size={2} align="center">
+                    <span>{section.name}</span>
+                    <Tooltip title="Rename section">
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<EditOutlined />}
+                        aria-label={`Rename section ${section.name} of ${cls.name}`}
+                        onClick={() => setSectionTarget({ id: cls.id, name: cls.name, section })}
+                      />
+                    </Tooltip>
+                    <Popconfirm
+                      title={`Delete section ${section.name} from ${cls.name}?`}
+                      description="Only an empty section can be deleted. The class is not affected."
+                      okText="Delete"
+                      okButtonProps={{ danger: true }}
+                      onConfirm={() => deleteSectionMutation.mutateAsync({ cls, section }).catch(() => undefined)}
+                    >
+                      <Tooltip title="Delete section">
+                        <Button
+                          type="text"
+                          size="small"
+                          danger
+                          icon={<DeleteOutlined />}
+                          aria-label={`Delete section ${section.name} of ${cls.name}`}
+                        />
+                      </Tooltip>
+                    </Popconfirm>
+                  </Space>
                 </Tag>
               ))}
             </Space>
@@ -126,7 +178,7 @@ function ClassesPage() {
           <Title level={2} style={{ margin: 0 }}>
             Classes, sections &amp; subjects
           </Title>
-          <Text type="secondary">Grade / class groups, their sections, and the subjects they teach.</Text>
+          <Text type="secondary">LKG to Class 12, their sections, and the subjects they teach. Sections can be added, renamed or removed at any time.</Text>
         </div>
         <Space>
           <Button

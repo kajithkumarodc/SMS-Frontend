@@ -12,6 +12,7 @@ import {
 } from '../../../api/students';
 import { fetchClasses } from '../../../api/classes';
 import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
+import { useSoleSchool } from '../../../hooks/useSoleSchool';
 import { CLASSES_QUERY_KEY } from '../../classes/queryKeys';
 import { STUDENTS_QUERY_KEY } from '../queryKeys';
 import { EMPTY_FORM, schema, STEP_FIELDS, STEPS, type FormValues } from './schema';
@@ -85,6 +86,7 @@ function AddStudentModal({ open, onClose }: Props) {
   }, [open, reset]);
 
   const values = watch();
+  const soleSchoolId = useSoleSchool(schoolsQuery.data, values.schoolId, (id) => setValue('schoolId', id));
   const combinedFullName = combineFullName(values.firstName, values.middleName, values.lastName);
   const debouncedFullName = useDebouncedValue(combinedFullName, 400);
   const academicYear = useMemo(() => computeAcademicYear(), []);
@@ -244,6 +246,7 @@ function AddStudentModal({ open, onClose }: Props) {
             setValue={setValue}
             schoolOptions={schoolOptions}
             schoolsLoading={schoolsQuery.isLoading}
+            hideSchool={Boolean(soleSchoolId)}
             classes={classes}
             selectedSchoolId={values.schoolId}
             selectedClassId={values.classId}
