@@ -18,12 +18,12 @@ import { SettingsPage } from '../features/settings';
 import {
   FrontOfficePage,
   EnquiriesPage,
-  FrontOfficePlaceholderPage,
   VisitorBookPage,
   PhoneCallLogPage,
   PostalDispatchPage,
   PostalReceivePage,
   ComplaintPage,
+  FrontOfficeSetupPage,
 } from '../features/frontoffice';
 import { PromotionPage } from '../features/promotion';
 import { AdmissionsPage, AdmissionCyclesPage } from '../features/admissions';
@@ -95,10 +95,7 @@ function AppRoutes() {
             <Route path="postal-dispatch" element={<PostalDispatchPage />} />
             <Route path="postal-receive" element={<PostalReceivePage />} />
             <Route path="complaints" element={<ComplaintPage />} />
-            <Route
-              path="setup"
-              element={<FrontOfficePlaceholderPage title="Setup Front Office" description="Manage the lists used across Front Office: purposes, complaint types, sources and references." />}
-            />
+            <Route path="setup" element={<FrontOfficeSetupPage />} />
           </Route>
           <Route path="enquiries" element={<EnquiriesRedirect />} />
           <Route path="admissions" element={<AdmissionsPage />} />

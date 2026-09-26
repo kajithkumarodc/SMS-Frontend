@@ -112,7 +112,7 @@ function AppLayout() {
           { key: '/app/front-office/postal-dispatch', label: 'Postal Dispatch', visible: hasPermission(user?.permissions, 'POSTAL_DISPATCH_VIEW') },
           { key: '/app/front-office/postal-receive', label: 'Postal Receive', visible: hasPermission(user?.permissions, 'POSTAL_RECEIVE_VIEW') },
           { key: '/app/front-office/complaints', label: 'Complain', visible: hasPermission(user?.permissions, 'COMPLAINT_VIEW') },
-          { key: '/app/front-office/setup', label: 'Setup Front Office', visible: canEnquiries },
+          { key: '/app/front-office/setup', label: 'Setup Front Office', visible: hasPermission(user?.permissions, 'FRONT_OFFICE_SETUP') },
         ],
       },
       {

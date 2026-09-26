@@ -18,3 +18,4 @@ export const POSTAL_RECEIVE_KEY = ['frontoffice', 'postal-receive'] as const; //
 export const COMPLAINTS_KEY = ['frontoffice', 'complaints'] as const; // + filter object
 export const COMPLAINT_KEY = ['frontoffice', 'complaint'] as const; // + id
 export const COMPLAINT_TYPES_KEY = ['frontoffice', 'complaint-types'] as const;
+export const FRONT_OFFICE_SETUP_KEY = ['frontoffice', 'setup'] as const; // + list key
