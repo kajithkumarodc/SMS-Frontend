@@ -11,3 +11,5 @@ export const VISITOR_KEY = ['frontoffice', 'visitor'] as const; // + id
 export const FRONT_OFFICE_PURPOSES_KEY = ['frontoffice', 'purposes'] as const;
 export const MEETING_OPTIONS_KEY = ['frontoffice', 'meeting-options'] as const; // + type, q
 export const PHONE_CALLS_KEY = ['frontoffice', 'phone-calls'] as const; // + filter object
+export const POSTAL_DISPATCHES_KEY = ['frontoffice', 'postal-dispatches'] as const; // + filter object
+export const POSTAL_DISPATCH_KEY = ['frontoffice', 'postal-dispatch'] as const; // + id
