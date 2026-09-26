@@ -2,16 +2,14 @@ import type { EnquiryStatus, FollowUpType } from '../../api/enquiries';
 
 export const ENQUIRY_STATUS_OPTIONS: { value: EnquiryStatus; label: string }[] = [
   { value: 'ACTIVE', label: 'Active' },
-  { value: 'FOLLOW_UP', label: 'Follow-up' },
-  { value: 'WON', label: 'Won' },
   { value: 'PASSIVE', label: 'Passive' },
+  { value: 'WON', label: 'Won' },
   { value: 'LOST', label: 'Lost' },
   { value: 'DEAD', label: 'Dead' },
 ];
 
 export const ENQUIRY_STATUS_COLOR: Record<EnquiryStatus, string> = {
   ACTIVE: 'processing',
-  FOLLOW_UP: 'gold',
   WON: 'success',
   PASSIVE: 'default',
   LOST: 'error',

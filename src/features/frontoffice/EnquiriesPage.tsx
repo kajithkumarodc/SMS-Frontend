@@ -1,99 +1,153 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Alert,
+  App,
   Button,
   Card,
+  Col,
   DatePicker,
   Empty,
-  Input,
+  Form,
+  Popconfirm,
   Result,
+  Row,
   Select,
-  Skeleton,
   Space,
   Table,
-  Tag,
+  Tooltip,
   Typography,
   theme,
 } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
-import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
+import type { ColumnsType, SorterResult } from 'antd/es/table/interface';
+import { CloseOutlined, EditOutlined, PhoneOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import dayjs, { type Dayjs } from 'dayjs';
 import {
-  fetchAssignableStaff,
+  fetchAllEnquiries,
   fetchEnquiries,
   fetchEnquirySources,
+  setEnquiryArchived,
   type Enquiry,
+  type EnquiryFilter,
+  type EnquirySortKey,
   type EnquiryStatus,
 } from '../../api/enquiries';
 import { fetchClasses } from '../../api/classes';
 import { useAuthStore } from '../../store/authStore';
 import { hasPermission } from '../../lib/roles';
-import { ASSIGNABLE_STAFF_KEY, ENQUIRIES_KEY, ENQUIRY_SOURCES_KEY } from './queryKeys';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
+import { API_DATE_FORMAT, DISPLAY_DATE_FORMAT, formatDisplayDate } from '../../lib/dates';
+import {
+  copyRows,
+  downloadCsv,
+  downloadExcel,
+  downloadPdf,
+  printRows,
+  type ExportColumn,
+  type ExportKind,
+} from '../../lib/tableExport';
+import DataTableToolbar from '../../components/DataTableToolbar';
+import { ENQUIRIES_KEY, ENQUIRY_SOURCES_KEY, ENQUIRY_SUMMARY_KEY } from './queryKeys';
 import { CLASSES_QUERY_KEY } from '../classes/queryKeys';
-import { ENQUIRY_STATUS_COLOR, ENQUIRY_STATUS_OPTIONS, enquiryStatusLabel } from './status';
-import AddEnquiryModal from './AddEnquiryModal';
-import EditEnquiryModal from './EditEnquiryModal';
-import EnquiryDetailModal from './EnquiryDetailModal';
+import { ENQUIRY_STATUS_OPTIONS, enquiryStatusLabel } from './status';
+import EnquiryFormModal from './EnquiryFormModal';
+import EnquiryFollowUpModal from './EnquiryFollowUpModal';
 
 const { Title, Text } = Typography;
-const DEFAULT_PAGE_SIZE = 20;
+
+const DEFAULT_PAGE_SIZE = 50;
+const HIDDEN_COLUMNS_STORAGE_KEY = 'sms.admissionEnquiry.hiddenColumns';
+const OVERDUE_ROW_CLASS = 'enquiry-row-overdue';
+const CLOSED_STATUSES: EnquiryStatus[] = ['WON', 'LOST', 'DEAD'];
+
+/** Applied "Select Criteria" -- only changes when Search is pressed. */
+type Criteria = {
+  classId?: string;
+  sourceId?: string;
+  from?: string;
+  to?: string;
+  status?: EnquiryStatus;
+};
+
+type Sort = { key: EnquirySortKey; order: 'ascend' | 'descend' } | null;
+
+/** A still-open enquiry whose next follow-up date has passed -- highlighted in the list. */
+function isOverdue(e: Enquiry): boolean {
+  return Boolean(e.followUpDate) && !CLOSED_STATUSES.includes(e.status) && e.followUpDate! < dayjs().format(API_DATE_FORMAT);
+}
+
+function readHiddenColumns(): string[] {
+  try {
+    const raw = localStorage.getItem(HIDDEN_COLUMNS_STORAGE_KEY);
+    const parsed: unknown = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeHiddenColumns(hidden: string[]) {
+  try {
+    localStorage.setItem(HIDDEN_COLUMNS_STORAGE_KEY, JSON.stringify(hidden));
+  } catch {
+    // Storage blocked (private mode etc.) -- the choice just won't persist.
+  }
+}
+
+/** Table columns that can be shown/hidden and exported (everything except Action). */
+const DATA_COLUMNS: { key: EnquirySortKey; title: string; value: (e: Enquiry) => string }[] = [
+  { key: 'applicantName', title: 'Name', value: (e) => e.applicantName },
+  { key: 'phone', title: 'Phone', value: (e) => e.phone ?? '' },
+  { key: 'sourceName', title: 'Source', value: (e) => e.sourceName ?? '' },
+  { key: 'enquiryDate', title: 'Enquiry Date', value: (e) => formatDisplayDate(e.enquiryDate) },
+  { key: 'lastFollowUpDate', title: 'Last Follow Up Date', value: (e) => formatDisplayDate(e.lastFollowUpDate) },
+  { key: 'followUpDate', title: 'Next Follow Up Date', value: (e) => formatDisplayDate(e.followUpDate) },
+  { key: 'status', title: 'Status', value: (e) => enquiryStatusLabel(e.status) },
+];
 
 function EnquiriesPage() {
   const { token } = theme.useToken();
+  const { message } = App.useApp();
+  const queryClient = useQueryClient();
   const permissions = useAuthStore((state) => state.user?.permissions);
   const canView = hasPermission(permissions, 'ENQUIRY_VIEW');
   const canCreate = hasPermission(permissions, 'ENQUIRY_CREATE');
   const canEdit = hasPermission(permissions, 'ENQUIRY_EDIT');
+  const canDelete = hasPermission(permissions, 'ENQUIRY_DELETE');
   const canFollowUp = hasPermission(permissions, 'ENQUIRY_FOLLOWUP');
   const canConvert = hasPermission(permissions, 'ENQUIRY_CONVERT');
-  const canArchive = hasPermission(permissions, 'ENQUIRY_DELETE');
+  const canExport = hasPermission(permissions, 'ENQUIRY_EXPORT');
+  const canPrint = hasPermission(permissions, 'ENQUIRY_PRINT');
 
+  // The Front Office overview links here with ?sourceId= / ?classId= -- start with those applied.
+  const [searchParams] = useSearchParams();
+  const linkedCriteria: Criteria = {
+    sourceId: searchParams.get('sourceId') ?? undefined,
+    classId: searchParams.get('classId') ?? undefined,
+  };
+
+  const [draft, setDraft] = useState<Criteria>({ status: 'ACTIVE', ...linkedCriteria });
+  const [draftErrors, setDraftErrors] = useState<{ from?: string; to?: string }>({});
+  const [criteria, setCriteria] = useState<Criteria>({ status: 'ACTIVE', ...linkedCriteria });
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search.trim(), 300);
+  const [sort, setSort] = useState<Sort>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
-  const [q, setQ] = useState('');
-  const [status, setStatus] = useState<EnquiryStatus | undefined>();
-  const [assignedStaffUserId, setAssignedStaffUserId] = useState<string | undefined>();
-  const [dateRange, setDateRange] = useState<[string, string] | undefined>();
+  const [hiddenColumns, setHiddenColumns] = useState<string[]>(readHiddenColumns);
+  const [exporting, setExporting] = useState<ExportKind | null>(null);
 
-  // Source/class are deep-linkable from the Front Office dashboard's breakdown rows
-  // (e.g. `?sourceId=...`), so they live in the URL rather than local-only state.
-  const [searchParams, setSearchParams] = useSearchParams();
-  const sourceId = searchParams.get('sourceId') ?? undefined;
-  const classId = searchParams.get('classId') ?? undefined;
-
-  const setSourceId = (value: string | undefined) => {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      if (value) next.set('sourceId', value);
-      else next.delete('sourceId');
-      return next;
-    });
-  };
-  const setClassId = (value: string | undefined) => {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      if (value) next.set('classId', value);
-      else next.delete('classId');
-      return next;
-    });
-  };
-
-  const [addOpen, setAddOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Enquiry | null>(null);
-  const [viewing, setViewing] = useState<Enquiry | null>(null);
+  const [followingUp, setFollowingUp] = useState<Enquiry | null>(null);
 
-  const filter = {
-    q: q || undefined,
-    status,
-    sourceId,
-    classId,
-    assignedStaffUserId,
-    from: dateRange?.[0],
-    to: dateRange?.[1],
-    page: page - 1,
-    size: pageSize,
+  const listFilter: Omit<EnquiryFilter, 'page' | 'size'> = {
+    ...criteria,
+    q: debouncedSearch || undefined,
+    sort: sort ? `${sort.key},${sort.order === 'ascend' ? 'asc' : 'desc'}` : undefined,
   };
+  const filter: EnquiryFilter = { ...listFilter, page: page - 1, size: pageSize };
 
   const enquiriesQuery = useQuery({
     queryKey: [...ENQUIRIES_KEY, filter],
@@ -102,195 +156,272 @@ function EnquiriesPage() {
     placeholderData: keepPreviousData,
   });
   const sourcesQuery = useQuery({ queryKey: ENQUIRY_SOURCES_KEY, queryFn: fetchEnquirySources, enabled: canView });
-  const staffQuery = useQuery({ queryKey: ASSIGNABLE_STAFF_KEY, queryFn: fetchAssignableStaff, enabled: canView });
   const classesQuery = useQuery({ queryKey: CLASSES_QUERY_KEY, queryFn: fetchClasses, enabled: canView });
+
+  const deleteMutation = useMutation({
+    mutationFn: (enquiry: Enquiry) => setEnquiryArchived(enquiry.id, true),
+    onSuccess: (saved) => {
+      message.success(`Enquiry for ${saved.applicantName} deleted`);
+      void queryClient.invalidateQueries({ queryKey: ENQUIRIES_KEY });
+      void queryClient.invalidateQueries({ queryKey: ENQUIRY_SUMMARY_KEY });
+    },
+    onError: () => message.error('Could not delete the enquiry. Please try again.'),
+  });
+
+  const visibleDataColumns = useMemo(
+    () => DATA_COLUMNS.filter((c) => !hiddenColumns.includes(c.key)),
+    [hiddenColumns],
+  );
 
   if (!canView) {
     return <Result status="403" title="Not available" subTitle="You don't have permission to view enquiries." />;
   }
 
-  const enquiries = enquiriesQuery.data?.content ?? [];
-  const total = enquiriesQuery.data?.page.totalElements ?? 0;
+  const applyCriteria = () => {
+    const errors: { from?: string; to?: string } = {};
+    if (!draft.from) errors.from = 'Enquiry from date is required';
+    if (!draft.to) errors.to = 'Enquiry to date is required';
+    if (draft.from && draft.to && draft.from > draft.to) errors.to = "Can't be before the from date";
+    setDraftErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+    setCriteria({ ...draft });
+    setPage(1);
+  };
+
+  const handleExport = async (kind: ExportKind) => {
+    setExporting(kind);
+    try {
+      const rows = await fetchAllEnquiries(listFilter);
+      const columns: ExportColumn<Enquiry>[] = visibleDataColumns.map((c) => ({ title: c.title, value: c.value }));
+      const fileBase = `admission-enquiries-${dayjs().format('YYYY-MM-DD')}`;
+      const title = 'Admission Enquiry';
+      if (kind === 'copy') {
+        await copyRows(rows, columns);
+        message.success(`Copied ${rows.length} row${rows.length === 1 ? '' : 's'} to the clipboard`);
+      } else if (kind === 'csv') downloadCsv(rows, columns, fileBase);
+      else if (kind === 'excel') await downloadExcel(rows, columns, fileBase, title);
+      else if (kind === 'pdf') await downloadPdf(rows, columns, fileBase, title);
+      else printRows(rows, columns, title);
+    } catch {
+      message.error("Couldn't export the enquiries. Please try again.");
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  const sortOrderFor = (key: EnquirySortKey) => (sort?.key === key ? sort.order : null);
 
   const columns: ColumnsType<Enquiry> = [
+    ...visibleDataColumns.map((c) => ({
+      key: c.key,
+      title: c.title,
+      sorter: true,
+      sortOrder: sortOrderFor(c.key),
+      render: (_: unknown, record: Enquiry) => c.value(record),
+      ...(c.key === 'phone' ? { align: 'right' as const } : {}),
+    })),
     {
-      title: 'Enquiry #',
-      dataIndex: 'enquiryNumber',
-      key: 'enquiryNumber',
-      render: (value: string, record) => (
-        <a onClick={() => setViewing(record)}>
-          <Text strong>{value}</Text>
-        </a>
-      ),
-    },
-    {
-      title: 'Applicant',
-      key: 'applicant',
-      render: (_value, record) => (
-        <Space direction="vertical" size={0}>
-          <Text>{record.applicantName}</Text>
-          {record.guardianName && (
-            <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
-              {record.guardianName}
-            </Text>
+      key: 'action',
+      title: 'Action',
+      align: 'right',
+      fixed: 'right',
+      width: 130,
+      render: (_: unknown, record: Enquiry) => (
+        <Space size={token.marginXXS}>
+          {(canFollowUp || canEdit || canConvert) && (
+            <Tooltip title="Follow up">
+              <Button
+                type="primary"
+                size="small"
+                icon={<PhoneOutlined />}
+                aria-label={`Follow up ${record.applicantName}`}
+                onClick={() => setFollowingUp(record)}
+              />
+            </Tooltip>
           )}
-        </Space>
-      ),
-    },
-    { title: 'Phone', dataIndex: 'phone', key: 'phone', render: (v: string | null) => v || <Text type="secondary">—</Text> },
-    {
-      title: 'Class',
-      dataIndex: 'className',
-      key: 'className',
-      render: (v: string | null) => v || <Text type="secondary">Not specified</Text>,
-    },
-    {
-      title: 'Source',
-      dataIndex: 'sourceName',
-      key: 'sourceName',
-      render: (v: string | null) => v || <Text type="secondary">Not specified</Text>,
-    },
-    {
-      title: 'Assigned to',
-      dataIndex: 'assignedStaffName',
-      key: 'assignedStaffName',
-      render: (v: string | null) => v || <Text type="secondary">Unassigned</Text>,
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
-      width: 120,
-      render: (value: EnquiryStatus) => <Tag color={ENQUIRY_STATUS_COLOR[value]}>{enquiryStatusLabel(value)}</Tag>,
-    },
-    { title: 'Enquiry date', dataIndex: 'enquiryDate', key: 'enquiryDate', width: 120 },
-    {
-      title: 'Actions',
-      key: 'actions',
-      width: 140,
-      render: (_value, record) => (
-        <Space size="small" wrap>
-          <Button type="link" size="small" style={{ paddingInline: 0 }} onClick={() => setViewing(record)}>
-            View
-          </Button>
-          {canEdit && !record.archived && (
-            <Button type="link" size="small" style={{ paddingInline: 0 }} onClick={() => setEditing(record)}>
-              Edit
-            </Button>
+          {canEdit && (
+            <Tooltip title="Edit">
+              <Button
+                type="primary"
+                size="small"
+                icon={<EditOutlined />}
+                aria-label={`Edit ${record.applicantName}`}
+                onClick={() => {
+                  setEditing(record);
+                  setFormOpen(true);
+                }}
+              />
+            </Tooltip>
+          )}
+          {canDelete && (
+            <Popconfirm
+              title="Delete this enquiry?"
+              description={`${record.applicantName}'s enquiry and its follow ups will be removed from the list.`}
+              okText="Delete"
+              okButtonProps={{ danger: true }}
+              onConfirm={() => deleteMutation.mutateAsync(record)}
+            >
+              <Tooltip title="Delete">
+                <Button
+                  type="primary"
+                  size="small"
+                  icon={<CloseOutlined />}
+                  aria-label={`Delete ${record.applicantName}`}
+                />
+              </Tooltip>
+            </Popconfirm>
           )}
         </Space>
       ),
     },
   ];
 
-  return (
-    <div style={{ maxWidth: 1200, width: '100%', margin: '0 auto' }}>
-      <header
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'flex-end',
-          justifyContent: 'space-between',
-          gap: token.marginSM,
-          marginBottom: token.marginLG,
-        }}
-      >
-        <div>
-          <Title level={2} style={{ margin: 0 }}>
-            Admission Enquiries
-          </Title>
-          <Text type="secondary">Leads and applicants, from first contact through to admission.</Text>
-        </div>
-        <Space>
-          <Button
-            icon={<ReloadOutlined />}
-            onClick={() => void enquiriesQuery.refetch()}
-            loading={enquiriesQuery.isFetching && !enquiriesQuery.isPending}
-          >
-            Refresh
-          </Button>
-          {canCreate && (
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => setAddOpen(true)}>
-              New enquiry
-            </Button>
-          )}
-        </Space>
-      </header>
+  const data = enquiriesQuery.data;
+  const total = data?.page.totalElements ?? 0;
+  const pickerValue = (v?: string): Dayjs | null => (v ? dayjs(v) : null);
 
-      <Card size="small" style={{ marginBottom: token.marginMD }}>
-        <Space wrap size="middle">
-          <Input.Search
-            placeholder="Search name, phone, enquiry #"
-            allowClear
-            style={{ width: 240 }}
-            onSearch={(value) => {
-              setQ(value);
-              setPage(1);
-            }}
-          />
-          <Select
-            placeholder="Status"
-            allowClear
-            style={{ width: 140 }}
-            options={ENQUIRY_STATUS_OPTIONS}
-            value={status}
-            onChange={(v) => {
-              setStatus(v);
-              setPage(1);
-            }}
-          />
-          <Select
-            placeholder="Source"
-            allowClear
-            style={{ width: 160 }}
-            loading={sourcesQuery.isLoading}
-            options={(sourcesQuery.data ?? []).map((s) => ({ value: s.id, label: s.name }))}
-            value={sourceId}
-            onChange={(v) => {
-              setSourceId(v);
-              setPage(1);
-            }}
-          />
-          <Select
-            placeholder="Class"
-            allowClear
-            style={{ width: 160 }}
-            loading={classesQuery.isLoading}
-            options={(classesQuery.data ?? []).map((c) => ({ value: c.id, label: c.name }))}
-            value={classId}
-            onChange={(v) => {
-              setClassId(v);
-              setPage(1);
-            }}
-          />
-          <Select
-            placeholder="Assigned staff"
-            allowClear
-            showSearch
-            optionFilterProp="label"
-            style={{ width: 200 }}
-            loading={staffQuery.isLoading}
-            options={(staffQuery.data ?? []).map((s) => ({ value: s.id, label: s.fullName }))}
-            value={assignedStaffUserId}
-            onChange={(v) => {
-              setAssignedStaffUserId(v);
-              setPage(1);
-            }}
-          />
-          <DatePicker.RangePicker
-            onChange={(dates) => {
-              setDateRange(
-                dates && dates[0] && dates[1]
-                  ? [dates[0].format('YYYY-MM-DD'), dates[1].format('YYYY-MM-DD')]
-                  : undefined,
-              );
-              setPage(1);
-            }}
-          />
-        </Space>
+  return (
+    <div style={{ width: '100%' }}>
+      {/* Overdue rows: a soft red tint that survives antd's per-cell backgrounds and hover. */}
+      <style>{`
+        .${OVERDUE_ROW_CLASS} > td { background: ${token.colorErrorBg} !important; }
+        .${OVERDUE_ROW_CLASS}:hover > td { background: ${token.colorErrorBgHover} !important; }
+      `}</style>
+
+      <Card
+        title={<Title level={4} style={{ margin: 0, fontWeight: 500, whiteSpace: 'normal' }}>Select Criteria</Title>}
+        style={{ marginBottom: token.marginLG }}
+      >
+        <Form layout="vertical" onFinish={applyCriteria} data-testid="enquiry-criteria">
+          <Row gutter={token.marginMD} align="bottom">
+            <Col xs={24} sm={12} lg={4}>
+              <Form.Item label="Class" htmlFor="enquiry-criteria-class">
+                <Select
+                  id="enquiry-criteria-class"
+                  placeholder="Select"
+                  allowClear
+                  showSearch
+                  optionFilterProp="label"
+                  loading={classesQuery.isLoading}
+                  options={(classesQuery.data ?? []).map((c) => ({ value: c.id, label: c.name }))}
+                  value={draft.classId}
+                  onChange={(v) => setDraft((d) => ({ ...d, classId: v }))}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12} lg={4}>
+              <Form.Item label="Source" htmlFor="enquiry-criteria-source">
+                <Select
+                  id="enquiry-criteria-source"
+                  placeholder="Select"
+                  allowClear
+                  showSearch
+                  optionFilterProp="label"
+                  loading={sourcesQuery.isLoading}
+                  options={(sourcesQuery.data ?? []).map((s) => ({ value: s.id, label: s.name }))}
+                  value={draft.sourceId}
+                  onChange={(v) => setDraft((d) => ({ ...d, sourceId: v }))}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12} lg={4}>
+              <Form.Item
+                label="Enquiry From Date"
+                htmlFor="enquiry-criteria-from"
+                required
+                validateStatus={draftErrors.from ? 'error' : undefined}
+                help={draftErrors.from}
+              >
+                <DatePicker
+                  style={{ width: '100%' }}
+                  format={DISPLAY_DATE_FORMAT}
+                  value={pickerValue(draft.from)}
+                  id="enquiry-criteria-from"
+                  onChange={(d) => setDraft((prev) => ({ ...prev, from: d ? d.format(API_DATE_FORMAT) : undefined }))}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12} lg={4}>
+              <Form.Item
+                label="Enquiry To Date"
+                htmlFor="enquiry-criteria-to"
+                required
+                validateStatus={draftErrors.to ? 'error' : undefined}
+                help={draftErrors.to}
+              >
+                <DatePicker
+                  style={{ width: '100%' }}
+                  format={DISPLAY_DATE_FORMAT}
+                  value={pickerValue(draft.to)}
+                  id="enquiry-criteria-to"
+                  onChange={(d) => setDraft((prev) => ({ ...prev, to: d ? d.format(API_DATE_FORMAT) : undefined }))}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12} lg={4}>
+              <Form.Item label="Status" htmlFor="enquiry-criteria-status">
+                <Select
+                  id="enquiry-criteria-status"
+                  placeholder="All"
+                  allowClear
+                  options={ENQUIRY_STATUS_OPTIONS}
+                  value={draft.status}
+                  onChange={(v) => setDraft((d) => ({ ...d, status: v }))}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12} lg={4} style={{ textAlign: 'right' }}>
+              <Form.Item>
+                <Button type="primary" htmlType="submit" icon={<SearchOutlined />}>
+                  Search
+                </Button>
+              </Form.Item>
+            </Col>
+          </Row>
+        </Form>
       </Card>
 
-      <Card styles={{ body: { padding: token.paddingLG } }} style={{ boxShadow: token.boxShadowTertiary }}>
+      <Card
+        title={<Title level={4} style={{ margin: 0, fontWeight: 500, whiteSpace: 'normal' }}>Admission Enquiry</Title>}
+        styles={{ header: { flexWrap: 'wrap', gap: token.marginSM, paddingBlock: token.paddingSM } }}
+        extra={
+          canCreate && (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => {
+                setEditing(null);
+                setFormOpen(true);
+              }}
+            >
+              Add
+            </Button>
+          )
+        }
+      >
+        <DataTableToolbar
+          search={search}
+          onSearchChange={(value) => {
+            setSearch(value);
+            setPage(1);
+          }}
+          pageSize={pageSize}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+          columns={DATA_COLUMNS.map((c) => ({ key: c.key, title: c.title }))}
+          hiddenColumns={hiddenColumns}
+          onHiddenColumnsChange={(hidden) => {
+            setHiddenColumns(hidden);
+            writeHiddenColumns(hidden);
+          }}
+          onExport={(kind) => void handleExport(kind)}
+          exporting={exporting}
+          canExport={canExport}
+          canPrint={canPrint}
+        />
+
         {enquiriesQuery.isError ? (
           <Alert
             type="warning"
@@ -303,49 +434,64 @@ function EnquiriesPage() {
               </Button>
             }
           />
-        ) : enquiriesQuery.isPending ? (
-          <Skeleton active paragraph={{ rows: 6 }} />
         ) : (
           <Table<Enquiry>
             rowKey="id"
+            size="middle"
             columns={columns}
-            dataSource={enquiries}
+            dataSource={data?.content ?? []}
             loading={enquiriesQuery.isFetching}
             scroll={{ x: 'max-content' }}
+            rowClassName={(record) => (isOverdue(record) ? OVERDUE_ROW_CLASS : '')}
+            onChange={(_pagination, _filters, sorter) => {
+              const s = (Array.isArray(sorter) ? sorter[0] : sorter) as SorterResult<Enquiry>;
+              setSort(s?.order && s.columnKey ? { key: s.columnKey as EnquirySortKey, order: s.order } : null);
+              setPage(1);
+            }}
             locale={{
               emptyText: (
-                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No enquiries yet — add your first one" />
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description={
+                    debouncedSearch || criteria.from || criteria.classId || criteria.sourceId
+                      ? 'No enquiries match these criteria'
+                      : 'No enquiries yet'
+                  }
+                />
               ),
             }}
             pagination={{
               current: page,
               pageSize,
               total,
-              showSizeChanger: true,
-              pageSizeOptions: [10, 20, 50, 100],
-              showTotal: (count) => `${count} enquir${count === 1 ? 'y' : 'ies'}`,
-              onChange: (nextPage, nextSize) => {
-                setPage(nextSize === pageSize ? nextPage : 1);
-                setPageSize(nextSize);
-              },
+              showSizeChanger: false,
+              showTotal: (count, [start, end]) =>
+                count === 0 ? '' : <Text type="secondary">Records: {start} to {end} of {count}</Text>,
+              onChange: (nextPage) => setPage(nextPage),
             }}
           />
         )}
       </Card>
 
-      {canCreate && <AddEnquiryModal open={addOpen} onClose={() => setAddOpen(false)} />}
-      {canEdit && <EditEnquiryModal enquiry={editing} onClose={() => setEditing(null)} />}
-      <EnquiryDetailModal
-        enquiry={viewing}
-        onClose={() => setViewing(null)}
-        onEdit={(enquiry) => {
-          setViewing(null);
-          setEditing(enquiry);
+      <EnquiryFormModal
+        open={formOpen}
+        enquiry={editing}
+        onClose={() => {
+          setFormOpen(false);
+          setEditing(null);
         }}
-        canEdit={canEdit}
+      />
+      <EnquiryFollowUpModal
+        enquiry={followingUp}
+        onClose={() => setFollowingUp(null)}
+        onEdit={(enquiry) => {
+          setFollowingUp(null);
+          setEditing(enquiry);
+          setFormOpen(true);
+        }}
         canFollowUp={canFollowUp}
+        canEdit={canEdit}
         canConvert={canConvert}
-        canArchive={canArchive}
       />
     </div>
   );
