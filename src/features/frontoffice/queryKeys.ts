@@ -15,3 +15,6 @@ export const POSTAL_DISPATCHES_KEY = ['frontoffice', 'postal-dispatches'] as con
 export const POSTAL_DISPATCH_KEY = ['frontoffice', 'postal-dispatch'] as const; // + id
 export const POSTAL_RECEIVES_KEY = ['frontoffice', 'postal-receives'] as const; // + filter object
 export const POSTAL_RECEIVE_KEY = ['frontoffice', 'postal-receive'] as const; // + id
+export const COMPLAINTS_KEY = ['frontoffice', 'complaints'] as const; // + filter object
+export const COMPLAINT_KEY = ['frontoffice', 'complaint'] as const; // + id
+export const COMPLAINT_TYPES_KEY = ['frontoffice', 'complaint-types'] as const;
