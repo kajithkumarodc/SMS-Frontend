@@ -4,3 +4,4 @@ export { default as FrontOfficePlaceholderPage } from './FrontOfficePlaceholderP
 export { default as VisitorBookPage } from './VisitorBookPage';
 export { default as PhoneCallLogPage } from './PhoneCallLogPage';
 export { default as PostalDispatchPage } from './PostalDispatchPage';
+export { default as PostalReceivePage } from './PostalReceivePage';

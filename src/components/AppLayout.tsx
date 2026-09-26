@@ -110,7 +110,7 @@ function AppLayout() {
           { key: '/app/front-office/visitor-book', label: 'Visitor Book', visible: hasPermission(user?.permissions, 'VISITOR_VIEW') },
           { key: '/app/front-office/phone-call-log', label: 'Phone Call Log', visible: hasPermission(user?.permissions, 'PHONE_CALL_VIEW') },
           { key: '/app/front-office/postal-dispatch', label: 'Postal Dispatch', visible: hasPermission(user?.permissions, 'POSTAL_DISPATCH_VIEW') },
-          { key: '/app/front-office/postal-receive', label: 'Postal Receive', visible: canEnquiries },
+          { key: '/app/front-office/postal-receive', label: 'Postal Receive', visible: hasPermission(user?.permissions, 'POSTAL_RECEIVE_VIEW') },
           { key: '/app/front-office/complaints', label: 'Complain', visible: canEnquiries },
           { key: '/app/front-office/setup', label: 'Setup Front Office', visible: canEnquiries },
         ],
