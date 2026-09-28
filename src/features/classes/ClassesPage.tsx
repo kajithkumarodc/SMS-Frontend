@@ -34,6 +34,7 @@ import AddClassModal from './AddClassModal';
 import AddSectionModal from './AddSectionModal';
 import AddSubjectModal from './AddSubjectModal';
 import AssignSubjectModal from './AssignSubjectModal';
+import { namedSections } from './sectionLookup';
 
 const { Title, Text } = Typography;
 
@@ -88,79 +89,85 @@ function ClassesPage() {
   const classes = classesQuery.data ?? [];
   const subjects = subjectsQuery.data ?? [];
 
-  const renderClass = (cls: SchoolClass) => ({
-    key: cls.id,
-    label: (
-      <Space>
-        <Text strong>{cls.name}</Text>
-        <Text type="secondary">
-          {cls.sections.length} section{cls.sections.length === 1 ? '' : 's'}
-        </Text>
-      </Space>
-    ),
-    extra: (
-      <Button
-        size="small"
-        icon={<PlusOutlined />}
-        onClick={(event) => {
-          event.stopPropagation();
-          setSectionTarget({ id: cls.id, name: cls.name });
-        }}
-      >
-        Add section
-      </Button>
-    ),
-    children: (
-      <Space direction="vertical" size={token.marginLG} style={{ width: '100%' }}>
-        <div>
-          <Text type="secondary" style={{ display: 'block', marginBottom: token.marginXS }}>
-            Sections
+  const renderClass = (cls: SchoolClass) => {
+    const sections = namedSections(cls);
+    return {
+      key: cls.id,
+      label: (
+        <Space>
+          <Text strong>{cls.name}</Text>
+          <Text type="secondary">
+            {sections.length === 0 ? 'No sections' : `${sections.length} section${sections.length === 1 ? '' : 's'}`}
           </Text>
-          {cls.sections.length === 0 ? (
-            <Text type="secondary">No sections yet — add the first one.</Text>
-          ) : (
-            <Space size={[token.marginXS, token.marginXS]} wrap>
-              {cls.sections.map((section) => (
-                <Tag key={section.id} style={{ marginInlineEnd: 0, paddingInlineEnd: 2 }} data-testid={`section-${cls.name}-${section.name}`}>
-                  <Space size={2} align="center">
-                    <span>{section.name}</span>
-                    <Tooltip title="Rename section">
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<EditOutlined />}
-                        aria-label={`Rename section ${section.name} of ${cls.name}`}
-                        onClick={() => setSectionTarget({ id: cls.id, name: cls.name, section })}
-                      />
-                    </Tooltip>
-                    <Popconfirm
-                      title={`Delete section ${section.name} from ${cls.name}?`}
-                      description="Only an empty section can be deleted. The class is not affected."
-                      okText="Delete"
-                      okButtonProps={{ danger: true }}
-                      onConfirm={() => deleteSectionMutation.mutateAsync({ cls, section }).catch(() => undefined)}
-                    >
-                      <Tooltip title="Delete section">
+        </Space>
+      ),
+      extra: (
+        <Button
+          size="small"
+          icon={<PlusOutlined />}
+          onClick={(event) => {
+            event.stopPropagation();
+            setSectionTarget({ id: cls.id, name: cls.name });
+          }}
+        >
+          Add section
+        </Button>
+      ),
+      children: (
+        <Space direction="vertical" size={token.marginLG} style={{ width: '100%' }}>
+          <div>
+            <Text type="secondary" style={{ display: 'block', marginBottom: token.marginXS }}>
+              Sections
+            </Text>
+            {sections.length === 0 ? (
+              <Text type="secondary">
+                No sections: students are placed in {cls.name} directly. Add a section only if the class is split
+                into groups; students already in {cls.name} move into the first section you add.
+              </Text>
+            ) : (
+              <Space size={[token.marginXS, token.marginXS]} wrap>
+                {sections.map((section) => (
+                  <Tag key={section.id} style={{ marginInlineEnd: 0, paddingInlineEnd: 2 }} data-testid={`section-${cls.name}-${section.name}`}>
+                    <Space size={2} align="center">
+                      <span>{section.name}</span>
+                      <Tooltip title="Rename section">
                         <Button
                           type="text"
                           size="small"
-                          danger
-                          icon={<DeleteOutlined />}
-                          aria-label={`Delete section ${section.name} of ${cls.name}`}
+                          icon={<EditOutlined />}
+                          aria-label={`Rename section ${section.name} of ${cls.name}`}
+                          onClick={() => setSectionTarget({ id: cls.id, name: cls.name, section })}
                         />
                       </Tooltip>
-                    </Popconfirm>
-                  </Space>
-                </Tag>
-              ))}
-            </Space>
-          )}
-        </div>
-
-        <ClassSubjects classId={cls.id} className={cls.name} allSubjects={subjects} />
-      </Space>
-    ),
-  });
+                      <Popconfirm
+                        title={`Delete section ${section.name} from ${cls.name}?`}
+                        description="Only an empty section can be deleted. The class is not affected."
+                        okText="Delete"
+                        okButtonProps={{ danger: true }}
+                        onConfirm={() => deleteSectionMutation.mutateAsync({ cls, section }).catch(() => undefined)}
+                      >
+                        <Tooltip title="Delete section">
+                          <Button
+                            type="text"
+                            size="small"
+                            danger
+                            icon={<DeleteOutlined />}
+                            aria-label={`Delete section ${section.name} of ${cls.name}`}
+                          />
+                        </Tooltip>
+                      </Popconfirm>
+                    </Space>
+                  </Tag>
+                ))}
+              </Space>
+            )}
+          </div>
+  
+          <ClassSubjects classId={cls.id} className={cls.name} allSubjects={subjects} />
+        </Space>
+      ),
+    };
+  };
 
   return (
     <div style={{ maxWidth: 1040, width: '100%', margin: '0 auto' }}>

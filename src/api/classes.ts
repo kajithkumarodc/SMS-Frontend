@@ -5,6 +5,8 @@ export type Section = {
   id: string;
   classId: string;
   name: string;
+  /** The hidden whole-class section of a class that has no real sections -- show the class name only. */
+  isDefault: boolean;
 };
 
 export type SchoolClass = {

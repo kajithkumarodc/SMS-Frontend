@@ -87,7 +87,7 @@ function ExamGradebook({ exam, sectionId, subjectName }: Props) {
           description={
             <>
               No students in this section yet —{' '}
-              <Link to="/app/students">assign students from the Students page</Link>.
+              <Link to="/app/student-information/student-details">assign students from the Students page</Link>.
             </>
           }
         />

@@ -9,7 +9,6 @@ import {
   Skeleton,
   Space,
   Table,
-  Tabs,
   Tag,
   Typography,
   theme,
@@ -36,7 +35,20 @@ const FREQUENCY_LABEL: Record<string, string> = {
   ANNUAL: 'Annual',
 };
 
-function FeesPage() {
+export type FeesSection = 'master' | 'types' | 'discounts';
+
+const SECTION_HEADER: Record<FeesSection, { title: string; description: string }> = {
+  master: { title: 'Fees Master', description: 'Define what your school charges and assign it to students.' },
+  types: { title: 'Fees Type', description: 'The kinds of fees your school charges (tuition, transport, and so on).' },
+  discounts: { title: 'Fees Discount', description: 'Discounts that can be applied to student fees.' },
+};
+
+type Props = {
+  /** Which Fees Collection menu page this is. */
+  section: FeesSection;
+};
+
+function FeesPage({ section }: Props) {
   const { token } = theme.useToken();
   const roles = useAuthStore((state) => state.user?.roles);
   const canManage = hasRole(roles, ROLE.SCHOOL_ADMIN);
@@ -46,7 +58,7 @@ function FeesPage() {
   const feeStructuresQuery = useQuery({
     queryKey: FEE_STRUCTURES_QUERY_KEY,
     queryFn: () => fetchFeeStructures(),
-    enabled: canManage,
+    enabled: canManage && section === 'master',
   });
 
   if (!canManage) {
@@ -158,20 +170,14 @@ function FeesPage() {
   return (
     <div style={{ maxWidth: 1040, width: '100%', margin: '0 auto' }}>
       <header style={{ marginBottom: token.marginLG }}>
+        <Text type="secondary">Fees Collection</Text>
         <Title level={2} style={{ margin: 0 }}>
-          Fees
+          {SECTION_HEADER[section].title}
         </Title>
-        <Text type="secondary">Define what your school charges, assign it to students, and configure discounts.</Text>
+        <Text type="secondary">{SECTION_HEADER[section].description}</Text>
       </header>
 
-      <Tabs
-        defaultActiveKey="structures"
-        items={[
-          { key: 'structures', label: 'Fee Structures', children: structuresTab },
-          { key: 'types', label: 'Fee Types', children: <FeeTypesTab /> },
-          { key: 'discounts', label: 'Discounts', children: <FeeDiscountsTab /> },
-        ]}
-      />
+      {section === 'master' ? structuresTab : section === 'types' ? <FeeTypesTab /> : <FeeDiscountsTab />}
     </div>
   );
 }

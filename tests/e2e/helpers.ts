@@ -31,9 +31,11 @@ export const ACCOUNTS = {
   parent: 'parent@demo.edu',
 } as const;
 
-/** The demo tenant's one section ("Grade 5 · A") and its single enrolled student. */
+/** The demo school's section ("Class 6 · A") and its enrolled student. */
 export const DEMO = {
-  sectionLabel: 'Grade 5 · A',
+  className: 'Class 6',
+  sectionName: 'A',
+  sectionLabel: 'Class 6 · A',
   studentName: 'Priya Sharma',
   examName: 'Mid-term 2026',
   children: ['Ajith', 'Priya Sharma'],

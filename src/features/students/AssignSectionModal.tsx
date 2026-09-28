@@ -4,7 +4,7 @@ import { Alert, App, Form, Modal, Select } from 'antd';
 import { fetchClasses } from '../../api/classes';
 import { assignStudentSection, type Student } from '../../api/students';
 import { CLASSES_QUERY_KEY } from '../classes/queryKeys';
-import { buildSectionSelectOptions } from '../classes/sectionLookup';
+import { buildSectionSelectOptions, hasSelectableSection } from '../classes/sectionLookup';
 import { STUDENTS_QUERY_KEY } from './queryKeys';
 
 type Props = {
@@ -32,7 +32,7 @@ function AssignSectionModal({ student, onClose }: Props) {
   }, [student]);
 
   const options = buildSectionSelectOptions(classesQuery.data);
-  const noSections = classesQuery.isSuccess && options.length === 0;
+  const noSections = classesQuery.isSuccess && !hasSelectableSection(classesQuery.data);
 
   const mutation = useMutation({
     mutationFn: () => {

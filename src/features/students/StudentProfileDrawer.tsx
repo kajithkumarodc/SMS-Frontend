@@ -164,7 +164,7 @@ function StudentProfileDrawer({
         <Descriptions.Item label="Admission #">{student.admissionNumber}</Descriptions.Item>
         <Descriptions.Item label="Roll #">{student.rollNumber || '—'}</Descriptions.Item>
         <Descriptions.Item label="Class · Section">
-          {sectionInfo ? `${sectionInfo.className} · ${sectionInfo.sectionName}` : 'Unassigned'}
+          {sectionInfo ? sectionInfo.label : 'Unassigned'}
         </Descriptions.Item>
         <Descriptions.Item label="Admission date">{student.admissionDate || '—'}</Descriptions.Item>
         <Descriptions.Item label="Guardian" span={2}>
@@ -297,7 +297,7 @@ function StudentProfileDrawer({
           key: 'section',
           render: (_v, record) => {
             const info = record.sectionId ? sectionLookup.get(record.sectionId) : undefined;
-            return info ? `${info.className} · ${info.sectionName}` : '—';
+            return info ? info.label : '—';
           },
         },
         {

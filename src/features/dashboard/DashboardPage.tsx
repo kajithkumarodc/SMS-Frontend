@@ -64,7 +64,7 @@ function DashboardPage() {
   const sectionLabel = (sectionId: string | null): string => {
     if (!sectionId) return 'Not assigned to a section';
     const info = sectionLookup.get(sectionId);
-    return info ? `${info.className} · ${info.sectionName}` : 'Assigned';
+    return info ? info.label : 'Assigned';
   };
 
   const greetingName = user?.name?.trim() || 'there';
@@ -320,7 +320,7 @@ function TeacherDashboard({ teacher }: { teacher: DashboardTeacherInfo }) {
         style={{ boxShadow: token.boxShadowTertiary }}
         title="My classes"
         extra={
-          <Link to="/app/students">
+          <Link to="/app/student-information/student-details">
             View students <RightOutlined />
           </Link>
         }

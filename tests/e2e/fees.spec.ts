@@ -29,8 +29,8 @@ async function addFeeStructure(page: Page, name: string): Promise<void> {
 test.describe.serial('fees', () => {
   test('admin adds a fee structure and generates an invoice for a student', async ({ page }) => {
     await login(page, ACCOUNTS.admin);
-    await page.goto('/app/fees'); // "Fees" can sit in the nav overflow at narrow widths
-    await expect(page.getByRole('heading', { name: 'Fees', level: 2 })).toBeVisible();
+    await page.goto('/app/fees-collection/fees-master');
+    await expect(page.getByRole('heading', { name: 'Fees Master', level: 2 })).toBeVisible();
 
     await addFeeStructure(page, FEE_NAME);
     await expect(page.getByText(`Fee structure "${FEE_NAME}" added`)).toBeVisible();

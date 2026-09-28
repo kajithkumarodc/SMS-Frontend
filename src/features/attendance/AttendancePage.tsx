@@ -20,7 +20,7 @@ import { fetchSectionAttendance, fetchSectionRoster, type AttendanceStatus } fro
 import { useAuthStore } from '../../store/authStore';
 import { hasAnyRole, ROLE } from '../../lib/roles';
 import { CLASSES_QUERY_KEY } from '../classes/queryKeys';
-import { buildSectionSelectOptions } from '../classes/sectionLookup';
+import { defaultSection, hasSelectableSection, namedSections } from '../classes/sectionLookup';
 import { SECTION_ATTENDANCE_KEY, SECTION_ROSTER_KEY, STUDENT_HISTORY_KEY } from './queryKeys';
 import RosterRow from './RosterRow';
 import StudentHistoryModal from './StudentHistoryModal';
@@ -51,7 +51,7 @@ function AttendancePage() {
   const canMark = hasAnyRole(roles, [ROLE.SCHOOL_ADMIN, ROLE.TEACHER]);
 
   const [params, setParams] = useSearchParams();
-  const sectionId = params.get('sectionId') ?? '';
+  const sectionParam = params.get('sectionId') ?? '';
   const date = params.get('date') ?? dayjs().format(DATE_FORMAT);
 
   const [history, setHistory] = useState<{ id: string; fullName: string } | null>(null);
@@ -68,10 +68,30 @@ function AttendancePage() {
   };
 
   const classesQuery = useQuery({ queryKey: CLASSES_QUERY_KEY, queryFn: fetchClasses, enabled: canMark });
+  const classes = classesQuery.data;
+  // Links may carry only ?sectionId= -- fall back to the class that section belongs to.
+  const classId =
+    params.get('classId') ?? classes?.find((c) => c.sections.some((s) => s.id === sectionParam))?.id ?? '';
+  const selectedClass = classes?.find((c) => c.id === classId);
   const sectionOptions = useMemo(
-    () => buildSectionSelectOptions(classesQuery.data),
-    [classesQuery.data],
+    () => namedSections(selectedClass).map((s) => ({ value: s.id, label: s.name })),
+    [selectedClass],
   );
+  // A class without sections (e.g. LKG) is marked as a whole: its roster loads straight after picking it.
+  const wholeClass = defaultSection(selectedClass);
+  const sectionId = wholeClass ? wholeClass.id : sectionParam;
+
+  const selectClass = (value: string) => {
+    setParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set('classId', value);
+        next.delete('sectionId');
+        return next;
+      },
+      { replace: true },
+    );
+  };
 
   const rosterQuery = useQuery({
     queryKey: [...SECTION_ROSTER_KEY, sectionId],
@@ -121,23 +141,47 @@ function AttendancePage() {
         <Title level={2} style={{ margin: 0 }}>
           Attendance
         </Title>
-        <Text type="secondary">Mark a section&rsquo;s attendance for a day.</Text>
+        <Text type="secondary">Select a class, then a section, to mark attendance for a day.</Text>
       </header>
 
       <Card style={{ marginBottom: token.marginLG, boxShadow: token.boxShadowTertiary }}>
         <Space size={token.margin} wrap>
           <div>
-            <Text type="secondary" style={{ display: 'block', marginBottom: token.marginXXS }}>
-              Section
-            </Text>
+            <label
+              htmlFor="attendance-class"
+              style={{ display: 'block', marginBottom: token.marginXXS, color: token.colorTextSecondary }}
+            >
+              Class
+            </label>
             <Select
+              id="attendance-class"
+              data-testid="attendance-class-select"
+              style={{ minWidth: 200 }}
+              placeholder="Select a class"
+              value={classId || undefined}
+              onChange={selectClass}
+              options={(classes ?? []).map((c) => ({ value: c.id, label: c.name }))}
+              loading={classesQuery.isLoading}
+              showSearch
+              optionFilterProp="label"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="attendance-section"
+              style={{ display: 'block', marginBottom: token.marginXXS, color: token.colorTextSecondary }}
+            >
+              Section
+            </label>
+            <Select
+              id="attendance-section"
               data-testid="attendance-section-select"
-              style={{ minWidth: 240 }}
-              placeholder="Select a section"
-              value={sectionId || undefined}
+              style={{ minWidth: 200 }}
+              placeholder={!classId ? 'Select a class first' : wholeClass ? 'Whole class (no sections)' : 'Select a section'}
+              disabled={!classId || Boolean(wholeClass)}
+              value={wholeClass ? undefined : sectionId || undefined}
               onChange={(value) => setParam('sectionId', value)}
               options={sectionOptions}
-              loading={classesQuery.isLoading}
               showSearch
               optionFilterProp="label"
             />
@@ -156,7 +200,7 @@ function AttendancePage() {
         </Space>
       </Card>
 
-      {classesQuery.isSuccess && sectionOptions.length === 0 && (
+      {classesQuery.isSuccess && !hasSelectableSection(classesQuery.data) && (
         <Alert
           type="info"
           showIcon
@@ -169,10 +213,10 @@ function AttendancePage() {
         />
       )}
 
-      {sectionId === '' && sectionOptions.length > 0 && (
+      {sectionId === '' && hasSelectableSection(classes) && (
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description="Select a section and date to begin marking."
+          description={classId ? 'Now select a section to begin marking.' : 'Select a class, then a section, to begin marking.'}
         />
       )}
 
@@ -186,10 +230,14 @@ function AttendancePage() {
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               description={
-                <>
-                  No students assigned to this section yet —{' '}
-                  <Link to="/app/students">assign students from the Students page</Link>.
-                </>
+                wholeClass ? (
+                  `No students in ${selectedClass?.name ?? 'this class'}.`
+                ) : (
+                  <>
+                    No students assigned to this section yet —{' '}
+                    <Link to="/app/student-information/student-details">assign students from the Students page</Link>.
+                  </>
+                )
               }
             />
           ) : (

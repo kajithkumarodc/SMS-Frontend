@@ -205,7 +205,8 @@ function AddStudentModal({ open, onClose }: Props) {
   const schoolName = schoolOptions.find((school) => school.value === values.schoolId)?.label;
   const selectedClass = classes.find((cls) => cls.id === values.classId);
   const className = selectedClass?.name;
-  const sectionName = selectedClass?.sections.find((section) => section.id === values.sectionId)?.name;
+  const selectedSection = selectedClass?.sections.find((section) => section.id === values.sectionId);
+  const sectionName = selectedSection?.isDefault ? 'Whole class (no sections)' : selectedSection?.name;
 
   return (
     <Modal

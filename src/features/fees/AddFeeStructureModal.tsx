@@ -80,7 +80,7 @@ function AddFeeStructureModal({ open, onClose }: Props) {
 
   const schoolsQuery = useQuery({ queryKey: ['schools'], queryFn: fetchSchools, enabled: open, staleTime: 5 * 60 * 1000 });
   const classesQuery = useQuery({ queryKey: ['classes'], queryFn: fetchClasses, enabled: open, staleTime: 60 * 1000 });
-  const feeTypesQuery = useQuery({ queryKey: ['fee-types'], queryFn: fetchFeeTypes, enabled: open, staleTime: 60 * 1000 });
+  const feeTypesQuery = useQuery({ queryKey: ['fee-types'], queryFn: () => fetchFeeTypes(), enabled: open, staleTime: 60 * 1000 });
   const currentYearQuery = useQuery({
     queryKey: ['academic-year-current'],
     queryFn: fetchCurrentAcademicYear,

@@ -23,7 +23,6 @@ import {
   ReadOutlined,
   SearchOutlined,
   SettingOutlined,
-  SolutionOutlined,
   SwapOutlined,
   TeamOutlined,
   TrophyOutlined,
@@ -55,6 +54,8 @@ type NavItem = NavLink & {
 };
 
 const FRONT_OFFICE_GROUP = 'group:front-office';
+const STUDENT_INFO_GROUP = 'group:student-information';
+const FEES_GROUP = 'group:fees-collection';
 
 function AppLayout() {
   const navigate = useNavigate();
@@ -90,6 +91,7 @@ function AppLayout() {
   const primaryRole = user?.roles?.[0];
 
   const canEnquiries = hasPermission(user?.permissions, 'ENQUIRY_VIEW');
+  const isSchoolAdmin = hasRole(user?.roles, ROLE.SCHOOL_ADMIN);
 
   const navItems: NavItem[] = useMemo(
     () => [
@@ -116,22 +118,35 @@ function AppLayout() {
         ],
       },
       {
-        key: '/app/admissions',
-        label: 'Online Admissions',
-        icon: <SolutionOutlined />,
-        visible: hasPermission(user?.permissions, 'ADMISSION_APPLICATION_VIEW'),
-      },
-      {
-        key: '/app/admission-cycles',
-        label: 'Admission Cycles',
-        icon: <CalendarOutlined />,
-        visible: hasPermission(user?.permissions, 'ADMISSION_CYCLE_VIEW'),
-      },
-      {
-        key: '/app/students',
-        label: 'Students',
+        key: STUDENT_INFO_GROUP,
+        label: 'Student Information',
         icon: <TeamOutlined />,
-        visible: hasAnyRole(user?.roles, [ROLE.SCHOOL_ADMIN, ROLE.TEACHER]),
+        visible: true,
+        // Pages not built yet are admin-only until each gets its own permissions.
+        children: [
+          {
+            key: '/app/student-information/student-details',
+            label: 'Student Details',
+            visible: hasAnyRole(user?.roles, [ROLE.SCHOOL_ADMIN, ROLE.TEACHER]),
+          },
+          { key: '/app/student-information/student-admission', label: 'Student Admission', visible: isSchoolAdmin },
+          {
+            key: '/app/student-information/online-admission',
+            label: 'Online Admission',
+            visible: hasPermission(user?.permissions, 'ADMISSION_APPLICATION_VIEW'),
+          },
+          {
+            key: '/app/student-information/admission-cycles',
+            label: 'Admission Cycles',
+            visible: hasPermission(user?.permissions, 'ADMISSION_CYCLE_VIEW'),
+          },
+          { key: '/app/student-information/disabled-students', label: 'Disabled Students', visible: isSchoolAdmin },
+          { key: '/app/student-information/multi-class-student', label: 'Multi Class Student', visible: isSchoolAdmin },
+          { key: '/app/student-information/bulk-delete', label: 'Bulk Delete', visible: isSchoolAdmin },
+          { key: '/app/student-information/student-categories', label: 'Student Categories', visible: isSchoolAdmin },
+          { key: '/app/student-information/student-house', label: 'Student House', visible: isSchoolAdmin },
+          { key: '/app/student-information/disable-reason', label: 'Disable Reason', visible: isSchoolAdmin },
+        ],
       },
       {
         key: '/app/attendance',
@@ -152,16 +167,28 @@ function AppLayout() {
         visible: hasRole(user?.roles, ROLE.SCHOOL_ADMIN),
       },
       {
-        key: '/app/fees',
-        label: 'Fees',
+        key: FEES_GROUP,
+        label: 'Fees Collection',
         icon: <WalletOutlined />,
-        visible: hasRole(user?.roles, ROLE.SCHOOL_ADMIN),
-      },
-      {
-        key: '/app/fee-collection',
-        label: 'Fee Collection',
-        icon: <WalletOutlined />,
-        visible: hasPermission(user?.permissions, 'FEE_COLLECT'),
+        visible: true,
+        // Pages not built yet are admin-only until each gets its own permissions.
+        children: [
+          {
+            key: '/app/fees-collection/collect-fees',
+            label: 'Collect Fees',
+            visible: hasPermission(user?.permissions, 'FEE_COLLECT'),
+          },
+          { key: '/app/fees-collection/offline-bank-payments', label: 'Offline Bank Payments', visible: isSchoolAdmin },
+          { key: '/app/fees-collection/search-fees-payment', label: 'Search Fees Payment', visible: isSchoolAdmin },
+          { key: '/app/fees-collection/search-due-fees', label: 'Search Due Fees', visible: isSchoolAdmin },
+          { key: '/app/fees-collection/fees-master', label: 'Fees Master', visible: isSchoolAdmin },
+          { key: '/app/fees-collection/quick-fees', label: 'Quick Fees', visible: isSchoolAdmin },
+          { key: '/app/fees-collection/fees-group', label: 'Fees Group', visible: isSchoolAdmin },
+          { key: '/app/fees-collection/fees-type', label: 'Fees Type', visible: isSchoolAdmin },
+          { key: '/app/fees-collection/fees-discount', label: 'Fees Discount', visible: isSchoolAdmin },
+          { key: '/app/fees-collection/fees-carry-forward', label: 'Fees Carry Forward', visible: isSchoolAdmin },
+          { key: '/app/fees-collection/fees-reminder', label: 'Fees Reminder', visible: isSchoolAdmin },
+        ],
       },
       {
         key: '/app/library',
@@ -317,7 +344,7 @@ function AppLayout() {
         }}
       >
         <Sider
-          width={240}
+          width={260}
           theme="light"
           breakpoint="lg"
           collapsedWidth={0}

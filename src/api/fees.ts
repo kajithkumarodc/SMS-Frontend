@@ -17,8 +17,14 @@ export type FeeType = {
   active: boolean;
 };
 
-export async function fetchFeeTypes(): Promise<FeeType[]> {
-  const { data } = await api.get<FeeType[]>('/v1/fee-types');
+export async function fetchFeeTypes(includeInactive = false): Promise<FeeType[]> {
+  const { data } = await api.get<FeeType[]>('/v1/fee-types', { params: includeInactive ? { includeInactive } : undefined });
+  return data;
+}
+
+/** Rename and/or (de)activate a fee type. Types are never deleted: old fee lines keep their name. */
+export async function updateFeeType(id: string, input: { name: string; active?: boolean }): Promise<FeeType> {
+  const { data } = await api.put<FeeType>(`/v1/fee-types/${id}`, input);
   return data;
 }
 
@@ -37,6 +43,8 @@ export type FeeStructureItem = {
   feeTypeName: string | null;
   amount: number;
   sequenceOrder: number;
+  /** YYYY-MM-DD; null = the structure's due date. */
+  dueDate: string | null;
 };
 
 export type FeeStructure = {
@@ -52,9 +60,17 @@ export type FeeStructure = {
   status: 'ACTIVE' | 'INACTIVE';
   items: FeeStructureItem[];
   createdAt: string;
+  /** Null = the same fees for every medium. */
+  mediumId: string | null;
+  /** How many students have been billed for this structure. */
+  billedCount: number;
 };
 
-export async function fetchFeeStructures(params?: { classId?: string; academicYear?: string }): Promise<FeeStructure[]> {
+export async function fetchFeeStructures(params?: {
+  classId?: string;
+  academicYear?: string;
+  mediumId?: string;
+}): Promise<FeeStructure[]> {
   const { data } = await api.get<FeeStructure[]>('/v1/fee-structures', { params });
   return data;
 }
@@ -64,6 +80,7 @@ export type LineItemInput = {
   label?: string;
   feeTypeId?: string;
   amount: number;
+  dueDate?: string | null;
 };
 
 export type CreateFeeStructureInput = {
@@ -76,11 +93,34 @@ export type CreateFeeStructureInput = {
   frequency?: FeeFrequency;
   lateFeeAmount?: number;
   items?: LineItemInput[];
+  mediumId?: string | null;
 };
 
 export async function createFeeStructure(input: CreateFeeStructureInput): Promise<FeeStructure> {
   const { data } = await api.post<FeeStructure>('/v1/fee-structures', input);
   return data;
+}
+
+export type UpdateFeeStructureResult = { structure: FeeStructure; adjustedInvoices: number; skipped: string[] };
+
+/**
+ * Edit a fee structure; its fee lines are replaced by `items`. Bills already raised keep their amount unless
+ * `applyToExisting` is set: then every unpaid bill moves by the same difference (recorded as an adjustment).
+ */
+export async function updateFeeStructure(
+  id: string,
+  input: CreateFeeStructureInput,
+  applyToExisting = false,
+): Promise<UpdateFeeStructureResult> {
+  const { data } = await api.put<UpdateFeeStructureResult>(`/v1/fee-structures/${id}`, input, {
+    params: applyToExisting ? { applyToExisting } : undefined,
+  });
+  return data;
+}
+
+/** 409 once any student has been billed for it. */
+export async function deleteFeeStructure(id: string): Promise<void> {
+  await api.delete(`/v1/fee-structures/${id}`);
 }
 
 // --- Discounts ----------------------------------------------------------
@@ -155,6 +195,9 @@ export async function fetchStudentInvoices(studentId: string): Promise<Invoice[]
 export type CreateInvoiceInput = {
   studentId: string;
   feeStructureId: string;
+  /** Admission-time adjustment of the template total for this student (recorded with the reason). */
+  amount?: number;
+  adjustmentReason?: string;
 };
 
 /** Generate a PENDING invoice for a student against a fee structure. 409 if a duplicate. */

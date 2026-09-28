@@ -3,11 +3,11 @@ import ProtectedRoute from '../components/ProtectedRoute';
 import AppLayout from '../components/AppLayout';
 import { LoginForm } from '../features/auth';
 import { DashboardPage } from '../features/dashboard';
-import { StudentsPage } from '../features/students';
+import { BulkDeletePage, StudentsPage, StudentAdmissionPage, StudentImportPage } from '../features/students';
 import { ClassesPage } from '../features/classes';
 import { AttendancePage } from '../features/attendance';
 import { ExamsPage } from '../features/exams';
-import { FeesPage, FeeCollectionPage } from '../features/fees';
+import { FeesPage, FeeCollectionPage, FeesMasterPage } from '../features/fees';
 import { ReportsPage } from '../features/reports';
 import { AnnouncementsPage } from '../features/announcements';
 import { LibraryPage } from '../features/library';
@@ -43,6 +43,8 @@ import {
   MyProfilePage,
 } from '../features/portal';
 import { useAuthStore } from '../store/authStore';
+import { hasRole, ROLE } from '../lib/roles';
+import ComingSoonPage from '../components/ComingSoonPage';
 
 function LoginRoute() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -60,6 +62,24 @@ function EnquiriesRedirect() {
   return <Navigate to={`/app/front-office/admission-enquiry${search}`} replace />;
 }
 
+/** Old page URL that moved into a menu group -- keeps bookmarks, links and `?...` filters working. */
+function MovedTo({ to }: { to: string }) {
+  const { search } = useLocation();
+  return <Navigate to={`${to}${search}`} replace />;
+}
+
+const STUDENT_INFO = 'Student Information';
+
+function StudentInfoComingSoon({ title, description }: { title: string; description: string }) {
+  const isAdmin = hasRole(useAuthStore((state) => state.user?.roles), ROLE.SCHOOL_ADMIN);
+  return <ComingSoonPage section={STUDENT_INFO} title={title} description={description} canView={isAdmin} />;
+}
+
+function FeesComingSoon({ title, description }: { title: string; description: string }) {
+  const isAdmin = hasRole(useAuthStore((state) => state.user?.roles), ROLE.SCHOOL_ADMIN);
+  return <ComingSoonPage section="Fees Collection" title={title} description={description} canView={isAdmin} />;
+}
+
 function AppRoutes() {
   return (
     <Routes>
@@ -72,12 +92,79 @@ function AppRoutes() {
         <Route path="/app" element={<AppLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
-          <Route path="students" element={<StudentsPage />} />
+          <Route path="students" element={<MovedTo to="/app/student-information/student-details" />} />
+          <Route path="student-information">
+            <Route index element={<Navigate to="student-details" replace />} />
+            <Route path="student-details" element={<StudentsPage key="details" />} />
+            <Route path="student-admission" element={<StudentAdmissionPage />} />
+            <Route path="student-admission/import" element={<StudentImportPage />} />
+            <Route path="online-admission" element={<AdmissionsPage />} />
+            <Route path="admission-cycles" element={<AdmissionCyclesPage />} />
+            <Route
+              path="disabled-students"
+              element={<StudentInfoComingSoon title="Disabled Students" description="Students who have been disabled, with the reason, and the option to enable them again." />}
+            />
+            <Route
+              path="multi-class-student"
+              element={<StudentInfoComingSoon title="Multi Class Student" description="Place one student in more than one class or section at the same time." />}
+            />
+            <Route
+              path="bulk-delete"
+              element={<BulkDeletePage />}
+            />
+            <Route
+              path="student-categories"
+              element={<StudentInfoComingSoon title="Student Categories" description="Manage student categories (for example General, OBC, SC, ST) used on the admission form." />}
+            />
+            <Route
+              path="student-house"
+              element={<StudentInfoComingSoon title="Student House" description="Manage the school houses students are grouped into." />}
+            />
+            <Route
+              path="disable-reason"
+              element={<StudentInfoComingSoon title="Disable Reason" description="Manage the reasons that can be chosen when a student is disabled." />}
+            />
+          </Route>
           <Route path="classes" element={<ClassesPage />} />
           <Route path="attendance" element={<AttendancePage />} />
           <Route path="exams" element={<ExamsPage />} />
-          <Route path="fees" element={<FeesPage />} />
-          <Route path="fee-collection" element={<FeeCollectionPage />} />
+          <Route path="fees-collection">
+            <Route index element={<Navigate to="collect-fees" replace />} />
+            <Route path="collect-fees" element={<FeeCollectionPage />} />
+            <Route
+              path="offline-bank-payments"
+              element={<FeesComingSoon title="Offline Bank Payments" description="Review fee payments that parents report as made by bank transfer or deposit, and approve or reject them." />}
+            />
+            <Route
+              path="search-fees-payment"
+              element={<FeesComingSoon title="Search Fees Payment" description="Find a fee payment by its payment ID and view or print its receipt." />}
+            />
+            <Route
+              path="search-due-fees"
+              element={<FeesComingSoon title="Search Due Fees" description="List students with unpaid fees by class, section and fee group." />}
+            />
+            <Route path="fees-master" element={<FeesMasterPage />} />
+            <Route
+              path="quick-fees"
+              element={<FeesComingSoon title="Quick Fees" description="Set up a student's fees for the year in a few steps, split into instalments." />}
+            />
+            <Route
+              path="fees-group"
+              element={<FeesComingSoon title="Fees Group" description="Group fee types together (for example Class 1 General) so they can be assigned in one go." />}
+            />
+            <Route path="fees-type" element={<FeesPage key="types" section="types" />} />
+            <Route path="fees-discount" element={<FeesPage key="discounts" section="discounts" />} />
+            <Route
+              path="fees-carry-forward"
+              element={<FeesComingSoon title="Fees Carry Forward" description="Move unpaid balances from the previous session into the new one." />}
+            />
+            <Route
+              path="fees-reminder"
+              element={<FeesComingSoon title="Fees Reminder" description="Send fee due reminders to parents before and after the due date." />}
+            />
+          </Route>
+          <Route path="fees" element={<MovedTo to="/app/fees-collection/fees-master" />} />
+          <Route path="fee-collection" element={<MovedTo to="/app/fees-collection/collect-fees" />} />
           <Route path="reports" element={<ReportsPage />} />
           <Route path="announcements" element={<AnnouncementsPage />} />
           <Route path="library" element={<LibraryPage />} />
@@ -98,8 +185,8 @@ function AppRoutes() {
             <Route path="setup" element={<FrontOfficeSetupPage />} />
           </Route>
           <Route path="enquiries" element={<EnquiriesRedirect />} />
-          <Route path="admissions" element={<AdmissionsPage />} />
-          <Route path="admission-cycles" element={<AdmissionCyclesPage />} />
+          <Route path="admissions" element={<MovedTo to="/app/student-information/online-admission" />} />
+          <Route path="admission-cycles" element={<MovedTo to="/app/student-information/admission-cycles" />} />
           <Route path="my-profile" element={<MyProfilePage />} />
           <Route path="my-attendance" element={<MyAttendancePage />} />
           <Route path="my-results" element={<MyResultsPage />} />
