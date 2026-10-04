@@ -3,17 +3,18 @@ import ProtectedRoute from '../components/ProtectedRoute';
 import AppLayout from '../components/AppLayout';
 import { LoginForm } from '../features/auth';
 import { DashboardPage } from '../features/dashboard';
-import { BulkDeletePage, StudentsPage, StudentAdmissionPage, StudentImportPage } from '../features/students';
+import { BulkDeletePage, StudentsPage, StudentAdmissionPage, StudentImportPage, StudentProfilePage } from '../features/students';
 import { ClassesPage } from '../features/classes';
 import { AttendancePage } from '../features/attendance';
 import { ExamsPage } from '../features/exams';
-import { FeesPage, FeeCollectionPage, FeesMasterPage } from '../features/fees';
+import { FeesPage, FeesMasterPage, CollectFeesPage, StudentFeesPage } from '../features/fees';
 import { ReportsPage } from '../features/reports';
 import { AnnouncementsPage } from '../features/announcements';
 import { LibraryPage } from '../features/library';
 import { TransportPage } from '../features/transport';
 import { HostelPage } from '../features/hostel';
-import { StaffPage, LeaveRequestsPage } from '../features/staff';
+import { AddStaffPage, ApplyLeavePage, ApproveLeavePage, ImportStaffPage, LeaveTypePage, RateTeachersPage, StaffAttendancePage, StaffDirectoryPage, StaffProfilePage, TeachersRatingPage } from '../features/staff';
+import { EditPayrollPage, PayrollPage } from '../features/payroll';
 import { SettingsPage } from '../features/settings';
 import {
   FrontOfficePage,
@@ -25,6 +26,7 @@ import {
   ComplaintPage,
   FrontOfficeSetupPage,
 } from '../features/frontoffice';
+import { AddExpensePage, ExpenseHeadPage, SearchExpensePage } from '../features/expenses';
 import { PromotionPage } from '../features/promotion';
 import { AdmissionsPage, AdmissionCyclesPage } from '../features/admissions';
 import { AdmissionApplyPage, AdmissionStatusPage, ActivateAccountPage } from '../features/admissions-public';
@@ -80,6 +82,11 @@ function FeesComingSoon({ title, description }: { title: string; description: st
   return <ComingSoonPage section="Fees Collection" title={title} description={description} canView={isAdmin} />;
 }
 
+function HumanResourceComingSoon({ title, description }: { title: string; description: string }) {
+  const isAdmin = hasRole(useAuthStore((state) => state.user?.roles), ROLE.SCHOOL_ADMIN);
+  return <ComingSoonPage section="Human Resource" title={title} description={description} canView={isAdmin} />;
+}
+
 function AppRoutes() {
   return (
     <Routes>
@@ -96,6 +103,7 @@ function AppRoutes() {
           <Route path="student-information">
             <Route index element={<Navigate to="student-details" replace />} />
             <Route path="student-details" element={<StudentsPage key="details" />} />
+            <Route path="student-details/:studentId" element={<StudentProfilePage />} />
             <Route path="student-admission" element={<StudentAdmissionPage />} />
             <Route path="student-admission/import" element={<StudentImportPage />} />
             <Route path="online-admission" element={<AdmissionsPage />} />
@@ -130,7 +138,8 @@ function AppRoutes() {
           <Route path="exams" element={<ExamsPage />} />
           <Route path="fees-collection">
             <Route index element={<Navigate to="collect-fees" replace />} />
-            <Route path="collect-fees" element={<FeeCollectionPage />} />
+            <Route path="collect-fees" element={<CollectFeesPage />} />
+            <Route path="collect-fees/:studentId" element={<StudentFeesPage />} />
             <Route
               path="offline-bank-payments"
               element={<FeesComingSoon title="Offline Bank Payments" description="Review fee payments that parents report as made by bank transfer or deposit, and approve or reject them." />}
@@ -163,6 +172,12 @@ function AppRoutes() {
               element={<FeesComingSoon title="Fees Reminder" description="Send fee due reminders to parents before and after the due date." />}
             />
           </Route>
+          <Route path="expenses">
+            <Route index element={<Navigate to="add-expense" replace />} />
+            <Route path="add-expense" element={<AddExpensePage />} />
+            <Route path="search-expense" element={<SearchExpensePage />} />
+            <Route path="expense-head" element={<ExpenseHeadPage />} />
+          </Route>
           <Route path="fees" element={<MovedTo to="/app/fees-collection/fees-master" />} />
           <Route path="fee-collection" element={<MovedTo to="/app/fees-collection/collect-fees" />} />
           <Route path="reports" element={<ReportsPage />} />
@@ -170,8 +185,35 @@ function AppRoutes() {
           <Route path="library" element={<LibraryPage />} />
           <Route path="transport" element={<TransportPage />} />
           <Route path="hostel" element={<HostelPage />} />
-          <Route path="staff" element={<StaffPage />} />
-          <Route path="leave-requests" element={<LeaveRequestsPage />} />
+          <Route path="staff" element={<MovedTo to="/app/human-resource/payroll" />} />
+          <Route path="leave-requests" element={<MovedTo to="/app/human-resource/approve-leave-request" />} />
+          <Route path="human-resource">
+            <Route index element={<Navigate to="staff-directory" replace />} />
+            <Route path="staff-directory" element={<StaffDirectoryPage />} />
+            <Route path="staff-directory/add" element={<AddStaffPage />} />
+            <Route path="staff-directory/import" element={<ImportStaffPage />} />
+            <Route path="staff-directory/:staffId/edit" element={<AddStaffPage />} />
+            <Route path="staff-directory/:staffId" element={<StaffProfilePage />} />
+            <Route path="staff-attendance" element={<StaffAttendancePage />} />
+            <Route path="payroll" element={<PayrollPage />} />
+            <Route path="payroll/:payrollId/edit" element={<EditPayrollPage />} />
+            <Route path="approve-leave-request" element={<ApproveLeavePage />} />
+            <Route path="apply-leave" element={<ApplyLeavePage />} />
+            <Route path="leave-type" element={<LeaveTypePage />} />
+            <Route path="teachers-rating" element={<TeachersRatingPage />} />
+            <Route
+              path="department"
+              element={<HumanResourceComingSoon title="Department" description="Manage the departments staff are assigned to." />}
+            />
+            <Route
+              path="designation"
+              element={<HumanResourceComingSoon title="Designation" description="Manage the designations staff can hold." />}
+            />
+            <Route
+              path="disabled-staff"
+              element={<HumanResourceComingSoon title="Disabled Staff" description="Staff who have been disabled, with the option to enable them again." />}
+            />
+          </Route>
           <Route path="settings" element={<SettingsPage />} />
           <Route path="promotion" element={<PromotionPage />} />
           <Route path="front-office">
@@ -187,6 +229,7 @@ function AppRoutes() {
           <Route path="enquiries" element={<EnquiriesRedirect />} />
           <Route path="admissions" element={<MovedTo to="/app/student-information/online-admission" />} />
           <Route path="admission-cycles" element={<MovedTo to="/app/student-information/admission-cycles" />} />
+          <Route path="my-teachers" element={<RateTeachersPage />} />
           <Route path="my-profile" element={<MyProfilePage />} />
           <Route path="my-attendance" element={<MyAttendancePage />} />
           <Route path="my-results" element={<MyResultsPage />} />

@@ -10,7 +10,9 @@ import {
   CalendarOutlined,
   CarOutlined,
   CheckSquareOutlined,
+  ClusterOutlined,
   ContactsOutlined,
+  CreditCardOutlined,
   DashboardOutlined,
   FileDoneOutlined,
   HomeOutlined,
@@ -23,6 +25,7 @@ import {
   ReadOutlined,
   SearchOutlined,
   SettingOutlined,
+  StarOutlined,
   SwapOutlined,
   TeamOutlined,
   TrophyOutlined,
@@ -33,6 +36,7 @@ import { logout as logoutRequest, refreshSession } from '../api/auth';
 import { useAuthStore } from '../store/authStore';
 import { hasAnyRole, hasPermission, hasRole, ROLE } from '../lib/roles';
 import { ChangePasswordModal } from '../features/settings';
+import NotificationBell from './NotificationBell';
 
 const { Sider, Header, Content } = Layout;
 const { Text } = Typography;
@@ -56,6 +60,8 @@ type NavItem = NavLink & {
 const FRONT_OFFICE_GROUP = 'group:front-office';
 const STUDENT_INFO_GROUP = 'group:student-information';
 const FEES_GROUP = 'group:fees-collection';
+const EXPENSES_GROUP = 'group:expenses';
+const HR_GROUP = 'group:human-resource';
 
 function AppLayout() {
   const navigate = useNavigate();
@@ -191,6 +197,37 @@ function AppLayout() {
         ],
       },
       {
+        key: EXPENSES_GROUP,
+        label: 'Expenses',
+        icon: <CreditCardOutlined />,
+        visible: true,
+        // Pages not built yet are admin-only until each gets its own permissions.
+        children: [
+          { key: '/app/expenses/add-expense', label: 'Add Expense', visible: hasPermission(user?.permissions, 'EXPENSE_VIEW') },
+          { key: '/app/expenses/search-expense', label: 'Search Expense', visible: hasPermission(user?.permissions, 'EXPENSE_VIEW') },
+          { key: '/app/expenses/expense-head', label: 'Expense Head', visible: hasPermission(user?.permissions, 'EXPENSE_VIEW') },
+        ],
+      },
+      {
+        key: HR_GROUP,
+        label: 'Human Resource',
+        icon: <ClusterOutlined />,
+        visible: true,
+        // Pages not built yet are admin-only until each gets its own permissions.
+        children: [
+          { key: '/app/human-resource/staff-directory', label: 'Staff Directory', visible: hasPermission(user?.permissions, 'STAFF_VIEW') },
+          { key: '/app/human-resource/staff-attendance', label: 'Staff Attendance', visible: hasPermission(user?.permissions, 'STAFF_ATTENDANCE_VIEW') },
+          { key: '/app/human-resource/payroll', label: 'Payroll', visible: hasPermission(user?.permissions, 'PAYROLL_VIEW') },
+          { key: '/app/human-resource/approve-leave-request', label: 'Approve Leave Request', visible: hasPermission(user?.permissions, 'LEAVE_APPROVE') },
+          { key: '/app/human-resource/apply-leave', label: 'Apply Leave', visible: hasPermission(user?.permissions, 'LEAVE_CREATE') },
+          { key: '/app/human-resource/leave-type', label: 'Leave Type', visible: hasPermission(user?.permissions, 'LEAVE_TYPE_MANAGE') },
+          { key: '/app/human-resource/teachers-rating', label: 'Teachers Rating', visible: hasPermission(user?.permissions, 'TEACHER_RATING_VIEW') },
+          { key: '/app/human-resource/department', label: 'Department', visible: isSchoolAdmin },
+          { key: '/app/human-resource/designation', label: 'Designation', visible: isSchoolAdmin },
+          { key: '/app/human-resource/disabled-staff', label: 'Disabled Staff', visible: isSchoolAdmin },
+        ],
+      },
+      {
         key: '/app/library',
         label: 'Library',
         icon: <BookOutlined />,
@@ -207,18 +244,6 @@ function AppLayout() {
         label: 'Hostel',
         icon: <HomeOutlined />,
         visible: hasAnyRole(user?.roles, [ROLE.SCHOOL_ADMIN, ROLE.TEACHER]),
-      },
-      {
-        key: '/app/staff',
-        label: 'Staff',
-        icon: <IdcardOutlined />,
-        visible: hasRole(user?.roles, ROLE.SCHOOL_ADMIN),
-      },
-      {
-        key: '/app/leave-requests',
-        label: 'Leave Requests',
-        icon: <FileDoneOutlined />,
-        visible: hasRole(user?.roles, ROLE.SCHOOL_ADMIN),
       },
       {
         key: '/app/reports',
@@ -272,6 +297,12 @@ function AppLayout() {
         key: '/app/my-hostel',
         label: 'My Hostel',
         icon: <HomeOutlined />,
+        visible: hasRole(user?.roles, ROLE.STUDENT),
+      },
+      {
+        key: '/app/my-teachers',
+        label: 'Rate Teachers',
+        icon: <StarOutlined />,
         visible: hasRole(user?.roles, ROLE.STUDENT),
       },
       {
@@ -417,9 +448,7 @@ function AppLayout() {
             />
             <div style={{ flex: 1 }} />
             <Space size="large" align="center">
-              <Badge dot color={token.colorPrimary}>
-                <BellOutlined style={{ fontSize: 18, color: token.colorTextSecondary }} />
-              </Badge>
+              <NotificationBell />
               <Space size="small" align="center">
                 <Avatar style={{ background: token.colorPrimary }}>{initials || <UserOutlined />}</Avatar>
                 {user?.name && (

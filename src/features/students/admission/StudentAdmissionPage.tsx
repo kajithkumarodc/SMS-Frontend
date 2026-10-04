@@ -359,12 +359,27 @@ function StudentAdmissionPage() {
       if (!structure) continue;
       await attempt(`Fees "${structure.name}"`, async () => {
         const payable = payableFor(structure);
+        const grid = feeGrids[id];
+        const adjustedRows = adjustedFees[id];
+        const termBased = structure.items.every((i) => /^TERM_\d$/.test(i.category));
+        const reason = adjustReasons[id]?.trim() || 'Adjusted at admission';
         const invoice = await createInvoice({
           studentId: student.id,
           feeStructureId: id,
-          ...(payable !== structure.amount
-            ? { amount: payable, adjustmentReason: adjustReasons[id]?.trim() || 'Adjusted at admission' }
-            : {}),
+          ...(payable !== structure.amount && adjustedRows && termBased
+            ? {
+                adjustmentReason: reason,
+                lines: adjustedRows.flatMap((row) =>
+                  row.amounts.slice(0, grid.termCount).flatMap((amount, t) =>
+                    amount && amount > 0
+                      ? [{ label: row.label || structure.name, feeTypeId: row.feeTypeId, category: `TERM_${t + 1}`, dueDate: grid.termDates[t] || structure.dueDate, amount }]
+                      : [],
+                  ),
+                ),
+              }
+            : payable !== structure.amount
+              ? { amount: payable, adjustmentReason: reason }
+              : {}),
         });
         invoices.push({ structure, invoiceId: invoice.id, discounted: false });
       });

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Alert,
@@ -55,7 +55,7 @@ import {
 } from '../../api/students';
 import { fetchClasses } from '../../api/classes';
 import { useAuthStore } from '../../store/authStore';
-import { hasAnyRole, hasRole, ROLE } from '../../lib/roles';
+import { hasAnyRole, hasPermission, hasRole, ROLE } from '../../lib/roles';
 import { formatDisplayDate } from '../../lib/dates';
 import { serverMessage } from '../../lib/apiErrors';
 import { downloadCsv, downloadExcel, downloadPdf, printRows, type ExportColumn, type ExportKind } from '../../lib/tableExport';
@@ -115,6 +115,7 @@ function StudentsPage() {
   const canManageStudents = hasRole(roles, ROLE.SCHOOL_ADMIN);
   const canViewLibrary = hasAnyRole(roles, [ROLE.SCHOOL_ADMIN, ROLE.TEACHER]);
   const canView = hasAnyRole(roles, [ROLE.SCHOOL_ADMIN, ROLE.TEACHER]);
+  const canSeeFees = hasPermission(useAuthStore((state) => state.user?.permissions), 'FEE_VIEW');
 
   const navigate = useNavigate();
   const [editing, setEditing] = useState<Student | null>(null);
@@ -137,7 +138,10 @@ function StudentsPage() {
   });
   useEffect(() => {
     if (!profileId || !linkedProfileQuery.isFetched) return;
-    if (linkedProfileQuery.data) setViewingProfile(linkedProfileQuery.data);
+    if (linkedProfileQuery.data) {
+      navigate(`/app/student-information/student-details/${linkedProfileQuery.data.id}`, { replace: true });
+      return;
+    }
     setSearchParams(
       (params) => {
         params.delete('profile');
@@ -320,9 +324,9 @@ function StudentsPage() {
     ];
     return (
       <Space size={token.marginXXS} wrap={false}>
-        {actionButton('View', <UnorderedListOutlined />, () => setViewingProfile(student), student)}
+        {actionButton('View', <UnorderedListOutlined />, () => navigate(`/app/student-information/student-details/${student.id}`), student)}
         {canManageStudents && actionButton('Edit', <EditOutlined />, () => setEditing(student), student)}
-        {canManageStudents && actionButton('Fees', <DollarOutlined />, () => setViewingInvoices(student), student)}
+        {canSeeFees && actionButton('Fees', <DollarOutlined />, () => navigate(`/app/fees-collection/collect-fees/${student.id}`), student)}
         {actionButton('Print', <PrinterOutlined />, () => printProfile(student), student)}
         <Dropdown
           trigger={['click']}
@@ -353,7 +357,7 @@ function StudentsPage() {
 
   const nameLink = (student: Student) => (
     <Space size={token.marginXXS} wrap>
-      <a onClick={() => setViewingProfile(student)}>{student.fullName}</a>
+      <Link to={`/app/student-information/student-details/${student.id}`}>{student.fullName}</Link>
       {student.status !== 'ACTIVE' && (
         <Tag style={{ marginInlineEnd: 0 }}>{STATUS_OPTIONS.find((o) => o.value === student.status)?.label}</Tag>
       )}
