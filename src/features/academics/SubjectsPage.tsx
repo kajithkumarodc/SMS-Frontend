@@ -131,7 +131,7 @@ function SubjectsPage() {
 
   const columns: ColumnsType<AcademicSubject> = [
     { key: 'name', title: 'Subject', sorter: (a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }), render: (_v, s) => s.name },
-    { key: 'code', title: 'Subject Code', sorter: (a, b) => (a.code ?? '').localeCompare(b.code ?? '', undefined, { numeric: true }), render: (_v, s) => s.code ?? '' },
+    { key: 'code', title: 'Subject Code', align: 'right', sorter: (a, b) => (a.code ?? '').localeCompare(b.code ?? '', undefined, { numeric: true }), render: (_v, s) => s.code ?? '' },
     { key: 'type', title: 'Subject Type', sorter: (a, b) => a.type.localeCompare(b.type), render: (_v, s) => typeLabel(s.type) },
     {
       key: 'action',
@@ -195,7 +195,7 @@ function SubjectsPage() {
               control={control}
               name="type"
               render={({ field }) => (
-                <Form.Item label="Subject Type" required {...err('type')}>
+                <Form.Item {...err('type')}>
                   <Radio.Group value={field.value} onChange={field.onChange} aria-label="Subject type">
                     <Radio value="THEORY">Theory</Radio>
                     <Radio value="PRACTICAL">Practical</Radio>

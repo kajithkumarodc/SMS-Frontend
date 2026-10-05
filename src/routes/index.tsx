@@ -27,7 +27,7 @@ import {
   FrontOfficeSetupPage,
 } from '../features/frontoffice';
 import { AddExpensePage, ExpenseHeadPage, SearchExpensePage } from '../features/expenses';
-import { ClassTimetablePage, CreateTimetablePage, SubjectGroupPage, SubjectsPage, TeachersTimetablePage } from '../features/academics';
+import { ClassPage, ClassTimetablePage, CreateTimetablePage, AssignClassTeacherPage, SectionsPage, SubjectGroupPage, SubjectsPage, TeachersTimetablePage } from '../features/academics';
 import { AddItemPage, AddItemStockPage, IssueItemFormPage, IssueItemPage, ItemCategoryPage, ItemStorePage, ItemSupplierPage } from '../features/inventory';
 import { PromotionPage } from '../features/promotion';
 import { AdmissionsPage, AdmissionCyclesPage } from '../features/admissions';
@@ -94,11 +94,6 @@ function AttendanceComingSoon({ title, description }: { title: string; descripti
   return <ComingSoonPage section="Attendance" title={title} description={description} canView={canView} />;
 }
 
-function AcademicsComingSoon({ title, description }: { title: string; description: string }) {
-  const isAdmin = hasRole(useAuthStore((state) => state.user?.roles), ROLE.SCHOOL_ADMIN);
-  return <ComingSoonPage section="Academics" title={title} description={description} canView={isAdmin} />;
-}
-
 function AppRoutes() {
   return (
     <Routes>
@@ -145,7 +140,8 @@ function AppRoutes() {
               element={<StudentInfoComingSoon title="Disable Reason" description="Manage the reasons that can be chosen when a student is disabled." />}
             />
           </Route>
-          <Route path="classes" element={<ClassesPage />} />
+          <Route path="classes" element={<ClassPage />} />
+          <Route path="classes/manage" element={<ClassesPage />} />
           <Route path="attendance">
             <Route index element={<MovedTo to="/app/attendance/student-attendance" />} />
             <Route path="student-attendance" element={<StudentAttendancePage />} />
@@ -206,13 +202,10 @@ function AppRoutes() {
             <Route path="class-timetable" element={<ClassTimetablePage />} />
             <Route path="class-timetable/create" element={<CreateTimetablePage />} />
             <Route path="teachers-timetable" element={<TeachersTimetablePage />} />
-            <Route
-              path="assign-class-teacher"
-              element={<AcademicsComingSoon title="Assign Class Teacher" description="Choose the class teacher of each class and section." />}
-            />
+            <Route path="assign-class-teacher" element={<AssignClassTeacherPage />} />
             <Route path="subject-group" element={<SubjectGroupPage />} />
             <Route path="subjects" element={<SubjectsPage />} />
-            <Route path="sections" element={<ClassesPage />} />
+            <Route path="sections" element={<SectionsPage />} />
           </Route>
           <Route path="inventory">
             <Route index element={<Navigate to="issue-item" replace />} />
