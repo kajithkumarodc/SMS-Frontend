@@ -27,6 +27,7 @@ import {
   FrontOfficeSetupPage,
 } from '../features/frontoffice';
 import { AddExpensePage, ExpenseHeadPage, SearchExpensePage } from '../features/expenses';
+import { AddItemPage, AddItemStockPage, IssueItemFormPage, IssueItemPage, ItemCategoryPage, ItemStorePage, ItemSupplierPage } from '../features/inventory';
 import { PromotionPage } from '../features/promotion';
 import { AdmissionsPage, AdmissionCyclesPage } from '../features/admissions';
 import { AdmissionApplyPage, AdmissionStatusPage, ActivateAccountPage } from '../features/admissions-public';
@@ -45,7 +46,7 @@ import {
   MyProfilePage,
 } from '../features/portal';
 import { useAuthStore } from '../store/authStore';
-import { hasAnyRole, hasRole, ROLE } from '../lib/roles';
+import { hasAnyRole, hasPermission, hasRole, ROLE } from '../lib/roles';
 import ComingSoonPage from '../components/ComingSoonPage';
 
 function LoginRoute() {
@@ -193,6 +194,16 @@ function AppRoutes() {
             <Route path="add-expense" element={<AddExpensePage />} />
             <Route path="search-expense" element={<SearchExpensePage />} />
             <Route path="expense-head" element={<ExpenseHeadPage />} />
+          </Route>
+          <Route path="inventory">
+            <Route index element={<Navigate to="issue-item" replace />} />
+            <Route path="issue-item" element={<IssueItemPage />} />
+            <Route path="issue-item/create" element={<IssueItemFormPage />} />
+            <Route path="add-item-stock" element={<AddItemStockPage />} />
+            <Route path="add-item" element={<AddItemPage />} />
+            <Route path="item-category" element={<ItemCategoryPage />} />
+            <Route path="item-store" element={<ItemStorePage />} />
+            <Route path="item-supplier" element={<ItemSupplierPage />} />
           </Route>
           <Route path="fees" element={<MovedTo to="/app/fees-collection/fees-master" />} />
           <Route path="fee-collection" element={<MovedTo to="/app/fees-collection/collect-fees" />} />

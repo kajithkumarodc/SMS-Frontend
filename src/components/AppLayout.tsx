@@ -31,6 +31,7 @@ import {
   TrophyOutlined,
   UserOutlined,
   WalletOutlined,
+  InboxOutlined,
 } from '@ant-design/icons';
 import { logout as logoutRequest, refreshSession } from '../api/auth';
 import { useAuthStore } from '../store/authStore';
@@ -63,6 +64,7 @@ const FEES_GROUP = 'group:fees-collection';
 const EXPENSES_GROUP = 'group:expenses';
 const HR_GROUP = 'group:human-resource';
 const ATTENDANCE_GROUP = 'group:attendance';
+const INVENTORY_GROUP = 'group:inventory';
 
 function AppLayout() {
   const navigate = useNavigate();
@@ -238,6 +240,20 @@ function AppLayout() {
         label: 'Library',
         icon: <BookOutlined />,
         visible: hasAnyRole(user?.roles, [ROLE.SCHOOL_ADMIN, ROLE.TEACHER]),
+      },
+      {
+        key: INVENTORY_GROUP,
+        label: 'Inventory',
+        icon: <InboxOutlined />,
+        visible: hasPermission(user?.permissions, 'INVENTORY_VIEW'),
+        children: [
+          { key: '/app/inventory/issue-item', label: 'Issue Item', visible: true },
+          { key: '/app/inventory/add-item-stock', label: 'Add Item Stock', visible: hasPermission(user?.permissions, 'INVENTORY_MANAGE') },
+          { key: '/app/inventory/add-item', label: 'Add Item', visible: hasPermission(user?.permissions, 'INVENTORY_MANAGE') },
+          { key: '/app/inventory/item-category', label: 'Item Category', visible: hasPermission(user?.permissions, 'INVENTORY_MANAGE') },
+          { key: '/app/inventory/item-store', label: 'Item Store', visible: hasPermission(user?.permissions, 'INVENTORY_MANAGE') },
+          { key: '/app/inventory/item-supplier', label: 'Item Supplier', visible: hasPermission(user?.permissions, 'INVENTORY_MANAGE') },
+        ],
       },
       {
         key: '/app/transport',
