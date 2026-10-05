@@ -65,6 +65,7 @@ const EXPENSES_GROUP = 'group:expenses';
 const HR_GROUP = 'group:human-resource';
 const ATTENDANCE_GROUP = 'group:attendance';
 const INVENTORY_GROUP = 'group:inventory';
+const ACADEMICS_GROUP = 'group:academics';
 
 function AppLayout() {
   const navigate = useNavigate();
@@ -175,10 +176,28 @@ function AppLayout() {
         visible: hasAnyRole(user?.roles, [ROLE.SCHOOL_ADMIN, ROLE.TEACHER]),
       },
       {
-        key: '/app/classes',
-        label: 'Classes',
+        key: ACADEMICS_GROUP,
+        label: 'Academics',
         icon: <ApartmentOutlined />,
-        visible: hasRole(user?.roles, ROLE.SCHOOL_ADMIN),
+        visible:
+          hasRole(user?.roles, ROLE.SCHOOL_ADMIN) ||
+          hasPermission(user?.permissions, 'TIMETABLE_VIEW') ||
+          hasPermission(user?.permissions, 'SUBJECT_MANAGE') ||
+          hasPermission(user?.permissions, 'STUDENT_PROMOTE'),
+        children: [
+          { key: '/app/academics/class-timetable', label: 'Class Timetable', visible: hasPermission(user?.permissions, 'TIMETABLE_VIEW') },
+          {
+            key: '/app/academics/teachers-timetable',
+            label: 'Teachers Timetable',
+            visible: hasPermission(user?.permissions, 'TIMETABLE_VIEW') && hasPermission(user?.permissions, 'STAFF_VIEW'),
+          },
+          { key: '/app/academics/assign-class-teacher', label: 'Assign Class Teacher', visible: isSchoolAdmin },
+          { key: '/app/promotion', label: 'Promote Students', visible: hasPermission(user?.permissions, 'STUDENT_PROMOTE') },
+          { key: '/app/academics/subject-group', label: 'Subject Group', visible: hasPermission(user?.permissions, 'SUBJECT_MANAGE') },
+          { key: '/app/academics/subjects', label: 'Subjects', visible: hasPermission(user?.permissions, 'SUBJECT_MANAGE') },
+          { key: '/app/classes', label: 'Class', visible: isSchoolAdmin },
+          { key: '/app/academics/sections', label: 'Sections', visible: isSchoolAdmin },
+        ],
       },
       {
         key: FEES_GROUP,
@@ -278,12 +297,6 @@ function AppLayout() {
         label: 'Announcements',
         icon: <NotificationOutlined />,
         visible: hasRole(user?.roles, ROLE.SCHOOL_ADMIN),
-      },
-      {
-        key: '/app/promotion',
-        label: 'Promotion',
-        icon: <SwapOutlined />,
-        visible: hasPermission(user?.permissions, 'STUDENT_PROMOTE'),
       },
       {
         key: '/app/settings',

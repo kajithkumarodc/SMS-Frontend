@@ -1,12 +1,21 @@
 import api from '../lib/api';
 
 /** An item category (`InventoryDtos.CategoryResponse`). */
-export type InventoryCategory = { id: string; name: string };
+export type InventoryCategory = { id: string; name: string; description: string | null };
 
 /** An item with the units in stock (`InventoryDtos.ItemResponse`). */
-export type InventoryItem = { id: string; name: string; categoryId: string; categoryName: string; stock: number };
+export type InventoryItem = {
+  id: string;
+  name: string;
+  categoryId: string;
+  categoryName: string;
+  unit: string;
+  description: string | null;
+  /** The available quantity: stock entries added, less what is issued. */
+  stock: number;
+};
 
-export type InventoryItemInput = { name: string; categoryId: string; stock: number };
+export type InventoryItemInput = { name: string; categoryId: string; unit: string; description: string | null };
 
 export type IssueStatus = 'ISSUED' | 'RETURNED';
 
@@ -46,13 +55,13 @@ export async function fetchInventoryCategories(): Promise<InventoryCategory[]> {
   return data;
 }
 
-export async function createInventoryCategory(name: string): Promise<InventoryCategory> {
-  const { data } = await api.post<InventoryCategory>('/v1/inventory/categories', { name });
+export async function createInventoryCategory(name: string, description: string | null): Promise<InventoryCategory> {
+  const { data } = await api.post<InventoryCategory>('/v1/inventory/categories', { name, description });
   return data;
 }
 
-export async function updateInventoryCategory(id: string, name: string): Promise<InventoryCategory> {
-  const { data } = await api.put<InventoryCategory>(`/v1/inventory/categories/${id}`, { name });
+export async function updateInventoryCategory(id: string, name: string, description: string | null): Promise<InventoryCategory> {
+  const { data } = await api.put<InventoryCategory>(`/v1/inventory/categories/${id}`, { name, description });
   return data;
 }
 

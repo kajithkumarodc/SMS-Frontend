@@ -3,7 +3,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Alert, App, Button, Card, Col, Empty, Form, Input, InputNumber, Popconfirm, Result, Row, Select, Space, Table, Tooltip, Typography, theme } from 'antd';
+import { Alert, App, Button, Card, Col, Empty, Form, Input, Popconfirm, Result, Row, Select, Space, Table, Tooltip, Typography, theme } from 'antd';
 import type { ColumnsType } from 'antd/es/table/interface';
 import { CloseOutlined, EditOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -20,27 +20,32 @@ import { hasPermission } from '../../lib/roles';
 import { serverMessage } from '../../lib/apiErrors';
 import { copyRows, downloadCsv, downloadExcel, downloadPdf, printRows, type ExportColumn, type ExportKind } from '../../lib/tableExport';
 import DataTableToolbar from '../../components/DataTableToolbar';
-import { INVENTORY_CATEGORIES_KEY, INVENTORY_ISSUES_KEY, INVENTORY_ITEMS_KEY } from './queryKeys';
+import { INVENTORY_CATEGORIES_KEY, INVENTORY_ISSUES_KEY, INVENTORY_ITEMS_KEY, INVENTORY_STOCK_KEY } from './queryKeys';
 
 const { Title, Text } = Typography;
 
 const DEFAULT_PAGE_SIZE = 50;
 
 const schema = z.object({
-  categoryId: z.string().min(1, 'Item Category is required'),
   name: z.string().trim().min(1, 'Item is required').max(100, 'Keep this under 100 characters'),
-  stock: z.number({ invalid_type_error: 'Stock is required' }).int('Use a whole number').min(0, 'Stock can\'t be negative'),
+  categoryId: z.string().min(1, 'Item Category is required'),
+  unit: z.string().trim().min(1, 'Unit is required').max(30, 'Keep this under 30 characters'),
+  description: z.string().max(500, 'Keep this under 500 characters'),
 });
 
 type FormValues = z.infer<typeof schema>;
 
+const EMPTY: FormValues = { name: '', categoryId: '', unit: '', description: '' };
+
 const EXPORT_COLUMNS: ExportColumn<InventoryItem>[] = [
   { title: 'Item', value: (i) => i.name },
+  { title: 'Description', value: (i) => i.description ?? '' },
   { title: 'Item Category', value: (i) => i.categoryName },
-  { title: 'Stock', value: (i) => String(i.stock) },
+  { title: 'Unit', value: (i) => i.unit },
+  { title: 'Available Quantity', value: (i) => String(i.stock) },
 ];
 
-/** Inventory -> Add Item (/app/inventory/add-item): the items in each category and the units in stock. */
+/** Inventory -> Add Item (/app/inventory/add-item): the items in each category; stock comes from Add Item Stock. */
 function AddItemPage() {
   const { token } = theme.useToken();
   const { message } = App.useApp();
@@ -61,29 +66,28 @@ function AddItemPage() {
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<FormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: { categoryId: '', name: '', stock: 0 },
-    mode: 'onTouched',
-  });
+  } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: EMPTY, mode: 'onTouched' });
 
   useEffect(() => {
-    reset(editing ? { categoryId: editing.categoryId, name: editing.name, stock: editing.stock } : { categoryId: '', name: '', stock: 0 });
+    reset(editing ? { name: editing.name, categoryId: editing.categoryId, unit: editing.unit, description: editing.description ?? '' } : EMPTY);
   }, [editing, reset]);
 
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: INVENTORY_ITEMS_KEY });
     void queryClient.invalidateQueries({ queryKey: INVENTORY_ISSUES_KEY });
+    void queryClient.invalidateQueries({ queryKey: INVENTORY_STOCK_KEY });
   };
 
   const saveMutation = useMutation({
-    mutationFn: (values: FormValues) =>
-      editing ? updateInventoryItem(editing.id, { ...values, name: values.name.trim() }) : createInventoryItem({ ...values, name: values.name.trim() }),
+    mutationFn: (values: FormValues) => {
+      const input = { name: values.name.trim(), categoryId: values.categoryId, unit: values.unit.trim(), description: values.description.trim() || null };
+      return editing ? updateInventoryItem(editing.id, input) : createInventoryItem(input);
+    },
     onSuccess: (saved) => {
       message.success(editing ? `Item "${saved.name}" updated` : `Item "${saved.name}" saved`);
       refresh();
       setEditing(null);
-      reset({ categoryId: '', name: '', stock: 0 });
+      reset(EMPTY);
     },
     onError: (error) => message.error(serverMessage(error) ?? 'Could not save the item. Please try again.'),
   });
@@ -130,8 +134,10 @@ function AddItemPage() {
 
   const columns: ColumnsType<InventoryItem> = [
     { key: 'name', title: 'Item', sorter: (a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }), render: (_v, i) => i.name },
+    { key: 'description', title: 'Description', sorter: (a, b) => (a.description ?? '').localeCompare(b.description ?? ''), render: (_v, i) => i.description ?? '' },
     { key: 'category', title: 'Item Category', sorter: (a, b) => a.categoryName.localeCompare(b.categoryName), render: (_v, i) => i.categoryName },
-    { key: 'stock', title: 'Stock', align: 'right', sorter: (a, b) => a.stock - b.stock, render: (_v, i) => i.stock },
+    { key: 'unit', title: 'Unit', sorter: (a, b) => a.unit.localeCompare(b.unit), render: (_v, i) => i.unit },
+    { key: 'stock', title: 'Available Quantity', align: 'right', sorter: (a, b) => a.stock - b.stock, render: (_v, i) => i.stock },
     {
       key: 'action',
       title: 'Action',
@@ -144,7 +150,7 @@ function AddItemPage() {
           </Tooltip>
           <Popconfirm
             title={`Delete "${i.name}"?`}
-            description="Items that have been issued can't be deleted."
+            description="Items that have been issued or have stock entries can't be deleted."
             okText="Delete"
             okButtonProps={{ danger: true }}
             onConfirm={() => deleteMutation.mutateAsync(i).catch(() => undefined)}
@@ -163,6 +169,7 @@ function AddItemPage() {
       {text}
     </Title>
   );
+  const err = (name: keyof FormValues) => ({ validateStatus: errors[name] ? ('error' as const) : undefined, help: errors[name]?.message });
   const save = handleSubmit((values) => saveMutation.mutate(values));
 
   return (
@@ -182,9 +189,18 @@ function AddItemPage() {
           <Form layout="vertical" onFinish={save} data-testid="item-form">
             <Controller
               control={control}
+              name="name"
+              render={({ field }) => (
+                <Form.Item label="Item" htmlFor="item-name" required {...err('name')}>
+                  <Input {...field} id="item-name" autoComplete="off" />
+                </Form.Item>
+              )}
+            />
+            <Controller
+              control={control}
               name="categoryId"
               render={({ field }) => (
-                <Form.Item label="Item Category" htmlFor="item-category" required validateStatus={errors.categoryId ? 'error' : undefined} help={errors.categoryId?.message}>
+                <Form.Item label="Item Category" htmlFor="item-category" required {...err('categoryId')}>
                   <Select
                     id="item-category"
                     placeholder="Select"
@@ -201,34 +217,19 @@ function AddItemPage() {
             />
             <Controller
               control={control}
-              name="name"
+              name="unit"
               render={({ field }) => (
-                <Form.Item label="Item" htmlFor="item-name" required validateStatus={errors.name ? 'error' : undefined} help={errors.name?.message}>
-                  <Input {...field} id="item-name" autoComplete="off" />
+                <Form.Item label="Unit" htmlFor="item-unit" required {...err('unit')}>
+                  <Input {...field} id="item-unit" autoComplete="off" placeholder="Piece, Box, Kg ..." />
                 </Form.Item>
               )}
             />
             <Controller
               control={control}
-              name="stock"
+              name="description"
               render={({ field }) => (
-                <Form.Item
-                  label="Stock"
-                  htmlFor="item-stock"
-                  required
-                  style={{ marginBottom: 0 }}
-                  validateStatus={errors.stock ? 'error' : undefined}
-                  help={errors.stock?.message}
-                >
-                  <InputNumber
-                    id="item-stock"
-                    style={{ width: '100%' }}
-                    min={0}
-                    precision={0}
-                    value={field.value ?? null}
-                    onChange={(v) => field.onChange(v ?? undefined)}
-                    onBlur={field.onBlur}
-                  />
+                <Form.Item label="Description" htmlFor="item-description" style={{ marginBottom: 0 }} {...err('description')}>
+                  <Input.TextArea {...field} id="item-description" rows={3} maxLength={500} />
                 </Form.Item>
               )}
             />
@@ -279,6 +280,7 @@ function AddItemPage() {
               columns={columns}
               dataSource={rows}
               loading={itemsQuery.isFetching}
+              scroll={{ x: 'max-content' }}
               rowClassName={(i) => (i.id === editing?.id ? 'ant-table-row-selected' : '')}
               locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={search.trim() ? 'No items match your search' : 'No items yet'} /> }}
               pagination={{

@@ -27,6 +27,7 @@ import {
   FrontOfficeSetupPage,
 } from '../features/frontoffice';
 import { AddExpensePage, ExpenseHeadPage, SearchExpensePage } from '../features/expenses';
+import { ClassTimetablePage, CreateTimetablePage, SubjectGroupPage, SubjectsPage, TeachersTimetablePage } from '../features/academics';
 import { AddItemPage, AddItemStockPage, IssueItemFormPage, IssueItemPage, ItemCategoryPage, ItemStorePage, ItemSupplierPage } from '../features/inventory';
 import { PromotionPage } from '../features/promotion';
 import { AdmissionsPage, AdmissionCyclesPage } from '../features/admissions';
@@ -91,6 +92,11 @@ function HumanResourceComingSoon({ title, description }: { title: string; descri
 function AttendanceComingSoon({ title, description }: { title: string; description: string }) {
   const canView = hasAnyRole(useAuthStore((state) => state.user?.roles), [ROLE.SCHOOL_ADMIN, ROLE.TEACHER]);
   return <ComingSoonPage section="Attendance" title={title} description={description} canView={canView} />;
+}
+
+function AcademicsComingSoon({ title, description }: { title: string; description: string }) {
+  const isAdmin = hasRole(useAuthStore((state) => state.user?.roles), ROLE.SCHOOL_ADMIN);
+  return <ComingSoonPage section="Academics" title={title} description={description} canView={isAdmin} />;
 }
 
 function AppRoutes() {
@@ -194,6 +200,19 @@ function AppRoutes() {
             <Route path="add-expense" element={<AddExpensePage />} />
             <Route path="search-expense" element={<SearchExpensePage />} />
             <Route path="expense-head" element={<ExpenseHeadPage />} />
+          </Route>
+          <Route path="academics">
+            <Route index element={<Navigate to="class-timetable" replace />} />
+            <Route path="class-timetable" element={<ClassTimetablePage />} />
+            <Route path="class-timetable/create" element={<CreateTimetablePage />} />
+            <Route path="teachers-timetable" element={<TeachersTimetablePage />} />
+            <Route
+              path="assign-class-teacher"
+              element={<AcademicsComingSoon title="Assign Class Teacher" description="Choose the class teacher of each class and section." />}
+            />
+            <Route path="subject-group" element={<SubjectGroupPage />} />
+            <Route path="subjects" element={<SubjectsPage />} />
+            <Route path="sections" element={<ClassesPage />} />
           </Route>
           <Route path="inventory">
             <Route index element={<Navigate to="issue-item" replace />} />

@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, App, Button, Card, Col, Empty, Form, Input, Popconfirm, Result, Row, Space, Table, Tooltip, Typography, theme } from 'antd';
 import type { ColumnsType } from 'antd/es/table/interface';
-import { CloseOutlined, EditOutlined } from '@ant-design/icons';
+import { BankOutlined, CloseOutlined, EditOutlined, MailFilled, PhoneFilled, UserOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import {
   createInventorySupplier,
@@ -32,7 +32,7 @@ const optionalEmail = z
   .refine((v) => v === '' || z.string().email().safeParse(v).success, 'Enter a valid email address');
 
 const schema = z.object({
-  name: z.string().trim().min(1, 'Item Supplier is required').max(100, 'Keep this under 100 characters'),
+  name: z.string().trim().min(1, 'Name is required').max(100, 'Keep this under 100 characters'),
   phone: z.string().trim().max(30, 'Keep this under 30 characters'),
   email: optionalEmail,
   address: z.string().trim().max(300, 'Keep this under 300 characters'),
@@ -176,19 +176,35 @@ function ItemSupplierPage() {
   };
 
   const columns: ColumnsType<InventorySupplier> = [
-    { key: 'name', title: 'Item Supplier', sorter: (a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }), render: (_v, s) => s.name },
-    { key: 'phone', title: 'Phone', render: (_v, s) => s.phone ?? '' },
-    { key: 'email', title: 'Email', render: (_v, s) => s.email ?? '' },
-    { key: 'address', title: 'Address', render: (_v, s) => s.address ?? '' },
+    {
+      key: 'name',
+      title: 'Item Supplier',
+      sorter: (a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
+      render: (_v, s) => (
+        <div>
+          <div>{s.name}</div>
+          {s.phone && <div><PhoneFilled aria-label="Phone" /> {s.phone}</div>}
+          {s.email && <div><MailFilled aria-label="Email" /> {s.email}</div>}
+        </div>
+      ),
+    },
     {
       key: 'contact',
       title: 'Contact Person',
+      sorter: (a, b) => (a.contactPersonName ?? '').localeCompare(b.contactPersonName ?? ''),
       render: (_v, s) => (
         <div>
-          <div>{s.contactPersonName}</div>
-          <Text type="secondary">{[s.contactPersonPhone, s.contactPersonEmail].filter(Boolean).join(' · ')}</Text>
+          {s.contactPersonName && <div><UserOutlined aria-label="Contact person" /> {s.contactPersonName}</div>}
+          {s.contactPersonPhone && <div><PhoneFilled aria-label="Phone" /> {s.contactPersonPhone}</div>}
+          {s.contactPersonEmail && <div><MailFilled aria-label="Email" /> {s.contactPersonEmail}</div>}
         </div>
       ),
+    },
+    {
+      key: 'address',
+      title: 'Address',
+      sorter: (a, b) => (a.address ?? '').localeCompare(b.address ?? ''),
+      render: (_v, s) => (s.address ? <span><BankOutlined aria-label="Address" /> {s.address}</span> : ''),
     },
     {
       key: 'action',
@@ -250,7 +266,7 @@ function ItemSupplierPage() {
           ]}
         >
           <Form layout="vertical" onFinish={save} data-testid="item-supplier-form">
-            {field('name', 'Item Supplier', 'supplier-name', true)}
+            {field('name', 'Name', 'supplier-name', true)}
             {field('phone', 'Phone', 'supplier-phone')}
             {field('email', 'Email', 'supplier-email')}
             {field('address', 'Address', 'supplier-address')}
