@@ -1,1 +1,1 @@
-export { default as AttendancePage } from './AttendancePage';
+export { default as StudentAttendancePage } from './StudentAttendancePage';

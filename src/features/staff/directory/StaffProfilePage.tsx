@@ -1,8 +1,9 @@
 import { useNavigate, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { Alert, Avatar, Button, Card, Col, Descriptions, Rate, Result, Row, Space, Spin, Tabs, Tag, Typography, theme } from 'antd';
-import { ArrowLeftOutlined, DownloadOutlined, EditOutlined, UserOutlined } from '@ant-design/icons';
-import { fetchStaffMember, staffDocumentUrl, staffPhotoUrl, type StaffMember } from '../../../api/staffMembers';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Alert, App, Avatar, Button, Card, Col, Descriptions, Rate, Result, Row, Space, Spin, Tabs, Tag, Timeline, Tooltip, Typography, theme } from 'antd';
+import { QRCodeSVG } from 'qrcode.react';
+import { ArrowLeftOutlined, DislikeOutlined, DownloadOutlined, EditOutlined, KeyOutlined, LikeOutlined, UserOutlined } from '@ant-design/icons';
+import { fetchStaffMember, resetStaffPassword, setStaffActive, staffDocumentUrl, staffPhotoUrl, type StaffMember } from '../../../api/staffMembers';
 import { fetchRatingSummary } from '../../../api/teacherRatings';
 import { useAuthStore } from '../../../store/authStore';
 import { hasPermission } from '../../../lib/roles';
@@ -10,7 +11,11 @@ import { formatDisplayDate } from '../../../lib/dates';
 import { formatFileSize } from '../../../lib/files';
 import { formatAmount } from '../../fees/format';
 import { RATING_SUMMARY_KEY } from '../rating/queryKeys';
-import { STAFF_MEMBER_KEY } from './queryKeys';
+import { STAFF_DIRECTORY_KEY, STAFF_MEMBER_KEY } from './queryKeys';
+import AttendanceTab from './profile/AttendanceTab';
+import Code39Barcode from './profile/Code39Barcode';
+import LeavesTab from './profile/LeavesTab';
+import PayrollTab from './profile/PayrollTab';
 import { CONTRACT_TYPE_OPTIONS, GENDER_OPTIONS, labelFor, MARITAL_STATUS_OPTIONS } from './options';
 
 const { Title, Text } = Typography;
@@ -57,6 +62,36 @@ function StaffProfilePage() {
     retry: false,
   });
   const summary = summaryQuery.data;
+  const queryClient = useQueryClient();
+  const { message, modal } = App.useApp();
+  const statusMutation = useMutation({
+    mutationFn: (active: boolean) => setStaffActive(id as string, active),
+    onSuccess: (updated) => {
+      queryClient.setQueryData([...STAFF_MEMBER_KEY, id], updated);
+      void queryClient.invalidateQueries({ queryKey: STAFF_DIRECTORY_KEY.slice(0, 1) });
+      message.success(updated.status === 'ACTIVE' ? 'Staff member enabled' : 'Staff member disabled');
+    },
+    onError: () => message.error("Couldn't change the status. Please try again."),
+  });
+  const passwordMutation = useMutation({
+    mutationFn: () => resetStaffPassword(id as string),
+    onSuccess: (password) =>
+      modal.success({
+        title: 'New temporary password',
+        content: (
+          <div>
+            <p>Share this with the staff member. It is shown only once; they must change it at their next sign-in.</p>
+            <Text code copyable>
+              {password}
+            </Text>
+          </div>
+        ),
+      }),
+    onError: () => message.error("Couldn't reset the password. Please try again."),
+  });
+  const canPayroll = hasPermission(permissions, 'PAYROLL_VIEW');
+  const canLeaves = hasPermission(permissions, 'LEAVE_VIEW');
+  const canAttendance = hasPermission(permissions, 'STAFF_ATTENDANCE_VIEW');
 
   if (!canView) {
     return <Result status="403" title="Not available" subTitle="You don't have permission to view staff profiles." />;
@@ -138,6 +173,27 @@ function StaffProfilePage() {
       </Descriptions>
     );
 
+  const timelineItems = [
+    staff.dateOfJoining && { date: staff.dateOfJoining, title: 'Joined', detail: [staff.designationName, staff.departmentName].filter(Boolean).join(', ') },
+    { date: staff.createdAt.slice(0, 10), title: 'Added to the staff directory', detail: `Staff ID ${staff.staffId}` },
+    staff.dateOfLeaving && { date: staff.dateOfLeaving, title: 'Left', detail: '' },
+  ]
+    .filter((item): item is { date: string; title: string; detail: string } => Boolean(item))
+    .sort((a, b) => b.date.localeCompare(a.date));
+  const timelineTab = (
+    <Timeline
+      style={{ marginTop: token.marginMD }}
+      items={timelineItems.map((item) => ({
+        children: (
+          <div>
+            <Text strong>{formatDisplayDate(item.date)}</Text> — {item.title}
+            {item.detail && <div><Text type="secondary">{item.detail}</Text></div>}
+          </div>
+        ),
+      }))}
+    />
+  );
+
   return (
     <Row gutter={[token.marginLG, token.marginLG]} align="top">
       <Col xs={24} lg={8} xl={7}>
@@ -175,6 +231,8 @@ function StaffProfilePage() {
             {side('Work Shift', staff.workShift)}
             {side('Work Location', staff.workLocation)}
             {side('Date Of Joining', formatDisplayDate(staff.dateOfJoining) || null)}
+            {side('Barcode', <Code39Barcode value={staff.staffId} />)}
+            {side('QR Code', <QRCodeSVG value={staff.staffId} size={72} aria-label={`QR code ${staff.staffId}`} />)}
           </div>
         </Card>
       </Col>
@@ -186,6 +244,47 @@ function StaffProfilePage() {
               {canEdit && (
                 <Button type="text" icon={<EditOutlined />} aria-label="Edit staff" onClick={() => navigate(`/app/human-resource/staff-directory/${staff.id}/edit`)} />
               )}
+              {canEdit && (
+                <Tooltip title="Reset login password">
+                  <Button
+                    type="text"
+                    icon={<KeyOutlined />}
+                    aria-label="Reset login password"
+                    loading={passwordMutation.isPending}
+                    onClick={() =>
+                      modal.confirm({
+                        title: 'Reset login password?',
+                        content: `${staff.fullName} will be signed out of their old password and get a new temporary one.`,
+                        okText: 'Reset',
+                        onOk: () => passwordMutation.mutateAsync().catch(() => undefined),
+                      })
+                    }
+                  />
+                </Tooltip>
+              )}
+              {canEdit && (
+                <Tooltip title={staff.status === 'ACTIVE' ? 'Disable staff' : 'Enable staff'}>
+                  <Button
+                    type="text"
+                    danger={staff.status === 'ACTIVE'}
+                    icon={staff.status === 'ACTIVE' ? <DislikeOutlined /> : <LikeOutlined />}
+                    aria-label={staff.status === 'ACTIVE' ? 'Disable staff' : 'Enable staff'}
+                    loading={statusMutation.isPending}
+                    onClick={() =>
+                      modal.confirm({
+                        title: staff.status === 'ACTIVE' ? 'Disable this staff member?' : 'Enable this staff member?',
+                        content:
+                          staff.status === 'ACTIVE'
+                            ? `${staff.fullName} will no longer be able to sign in. You can enable them again from Human Resource > Disabled Staff.`
+                            : `${staff.fullName} will be able to sign in again.`,
+                        okText: staff.status === 'ACTIVE' ? 'Disable' : 'Enable',
+                        okButtonProps: { danger: staff.status === 'ACTIVE' },
+                        onOk: () => statusMutation.mutateAsync(staff.status !== 'ACTIVE').catch(() => undefined),
+                      })
+                    }
+                  />
+                </Tooltip>
+              )}
               <Button type="text" icon={<ArrowLeftOutlined />} aria-label="Back to Staff Directory" onClick={() => navigate('/app/human-resource/staff-directory')} />
             </Space>
           }
@@ -194,7 +293,11 @@ function StaffProfilePage() {
           <Tabs
             items={[
               { key: 'profile', label: 'Profile', children: profileTab },
+              ...(canPayroll ? [{ key: 'payroll', label: 'Payroll', children: <PayrollTab staffId={staff.id} /> }] : []),
+              ...(canLeaves ? [{ key: 'leaves', label: 'Leaves', children: <LeavesTab staffId={staff.id} staffName={staff.fullName} staffCode={staff.staffId} /> }] : []),
+              ...(canAttendance ? [{ key: 'attendance', label: 'Attendance', children: <AttendanceTab staffId={staff.id} /> }] : []),
               { key: 'documents', label: 'Documents', children: documentsTab },
+              { key: 'timeline', label: 'Timeline', children: timelineTab },
             ]}
           />
         </Card>

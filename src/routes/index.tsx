@@ -5,7 +5,7 @@ import { LoginForm } from '../features/auth';
 import { DashboardPage } from '../features/dashboard';
 import { BulkDeletePage, StudentsPage, StudentAdmissionPage, StudentImportPage, StudentProfilePage } from '../features/students';
 import { ClassesPage } from '../features/classes';
-import { AttendancePage } from '../features/attendance';
+import { StudentAttendancePage } from '../features/attendance';
 import { ExamsPage } from '../features/exams';
 import { FeesPage, FeesMasterPage, CollectFeesPage, StudentFeesPage } from '../features/fees';
 import { ReportsPage } from '../features/reports';
@@ -13,7 +13,7 @@ import { AnnouncementsPage } from '../features/announcements';
 import { LibraryPage } from '../features/library';
 import { TransportPage } from '../features/transport';
 import { HostelPage } from '../features/hostel';
-import { AddStaffPage, ApplyLeavePage, ApproveLeavePage, ImportStaffPage, LeaveTypePage, RateTeachersPage, StaffAttendancePage, StaffDirectoryPage, StaffProfilePage, TeachersRatingPage } from '../features/staff';
+import { AddStaffPage, ApplyLeavePage, ApproveLeavePage, ImportStaffPage, LeaveTypePage, RateTeachersPage, DepartmentPage, DesignationPage, StaffAttendancePage, StaffDirectoryPage, StaffProfilePage, TeachersRatingPage } from '../features/staff';
 import { EditPayrollPage, PayrollPage } from '../features/payroll';
 import { SettingsPage } from '../features/settings';
 import {
@@ -45,7 +45,7 @@ import {
   MyProfilePage,
 } from '../features/portal';
 import { useAuthStore } from '../store/authStore';
-import { hasRole, ROLE } from '../lib/roles';
+import { hasAnyRole, hasRole, ROLE } from '../lib/roles';
 import ComingSoonPage from '../components/ComingSoonPage';
 
 function LoginRoute() {
@@ -85,6 +85,11 @@ function FeesComingSoon({ title, description }: { title: string; description: st
 function HumanResourceComingSoon({ title, description }: { title: string; description: string }) {
   const isAdmin = hasRole(useAuthStore((state) => state.user?.roles), ROLE.SCHOOL_ADMIN);
   return <ComingSoonPage section="Human Resource" title={title} description={description} canView={isAdmin} />;
+}
+
+function AttendanceComingSoon({ title, description }: { title: string; description: string }) {
+  const canView = hasAnyRole(useAuthStore((state) => state.user?.roles), [ROLE.SCHOOL_ADMIN, ROLE.TEACHER]);
+  return <ComingSoonPage section="Attendance" title={title} description={description} canView={canView} />;
 }
 
 function AppRoutes() {
@@ -134,7 +139,18 @@ function AppRoutes() {
             />
           </Route>
           <Route path="classes" element={<ClassesPage />} />
-          <Route path="attendance" element={<AttendancePage />} />
+          <Route path="attendance">
+            <Route index element={<MovedTo to="/app/attendance/student-attendance" />} />
+            <Route path="student-attendance" element={<StudentAttendancePage />} />
+            <Route
+              path="approve-leave"
+              element={<AttendanceComingSoon title="Approve Leave" description="Approve or reject leave requests from students and parents." />}
+            />
+            <Route
+              path="attendance-by-date"
+              element={<AttendanceComingSoon title="Attendance By Date" description="See the attendance of every class on a chosen day." />}
+            />
+          </Route>
           <Route path="exams" element={<ExamsPage />} />
           <Route path="fees-collection">
             <Route index element={<Navigate to="collect-fees" replace />} />
@@ -201,17 +217,11 @@ function AppRoutes() {
             <Route path="apply-leave" element={<ApplyLeavePage />} />
             <Route path="leave-type" element={<LeaveTypePage />} />
             <Route path="teachers-rating" element={<TeachersRatingPage />} />
-            <Route
-              path="department"
-              element={<HumanResourceComingSoon title="Department" description="Manage the departments staff are assigned to." />}
-            />
-            <Route
-              path="designation"
-              element={<HumanResourceComingSoon title="Designation" description="Manage the designations staff can hold." />}
-            />
+            <Route path="department" element={<DepartmentPage />} />
+            <Route path="designation" element={<DesignationPage />} />
             <Route
               path="disabled-staff"
-              element={<HumanResourceComingSoon title="Disabled Staff" description="Staff who have been disabled, with the option to enable them again." />}
+              element={<StaffDirectoryPage disabledOnly />}
             />
           </Route>
           <Route path="settings" element={<SettingsPage />} />

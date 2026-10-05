@@ -70,7 +70,7 @@ function placeLine(staff: StaffCard): string {
 }
 
 /** Human Resource -> Staff Directory (/app/human-resource/staff-directory): find staff by role or keyword. */
-function StaffDirectoryPage() {
+function StaffDirectoryPage({ disabledOnly = false }: { disabledOnly?: boolean }) {
   const { token } = theme.useToken();
   const { message } = App.useApp();
   const navigate = useNavigate();
@@ -95,6 +95,7 @@ function StaffDirectoryPage() {
   const filter: StaffDirectoryFilter = {
     roleId: criteria?.kind === 'role' ? criteria.roleId : undefined,
     q: criteria?.kind === 'keyword' ? criteria.q : undefined,
+    status: disabledOnly ? 'INACTIVE' : undefined,
   };
   const optionsQuery = useQuery({ queryKey: STAFF_OPTIONS_KEY, queryFn: fetchStaffOptions, enabled: canView });
   const staffQuery = useQuery({
@@ -272,11 +273,11 @@ function StaffDirectoryPage() {
     <Card
       title={
         <Title level={4} style={{ margin: 0, fontWeight: 500 }}>
-          Select Criteria
+          {disabledOnly ? 'Disabled Staff' : 'Select Criteria'}
         </Title>
       }
       extra={
-        canCreate && (
+        canCreate && !disabledOnly && (
           <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/app/human-resource/staff-directory/add')}>
             Add Staff
           </Button>

@@ -1,4 +1,5 @@
 import api from '../lib/api';
+import type { LeaveBalance, LeaveRequestRow } from './leaveManagement';
 
 export type StaffDocumentKind = 'RESUME' | 'JOINING_LETTER' | 'RESIGNATION_LETTER' | 'OTHER';
 
@@ -246,4 +247,66 @@ export async function importStaff(
 export async function fetchStaffSampleCsv(): Promise<Blob> {
   const { data } = await api.get<Blob>('/v1/staff-members/import/sample', { responseType: 'blob' });
   return data;
+}
+
+// --- Profile tabs and actions --------------------------------------------------------------------
+
+export type StaffPayslip = {
+  id: string;
+  month: number;
+  year: number;
+  date: string | null;
+  modeLabel: string | null;
+  status: 'GENERATED' | 'PAID';
+  netSalary: number;
+};
+
+/** Totals count paid payrolls only (`StaffProfileTabsService.PayrollSummary`). */
+export type StaffPayrollSummary = {
+  totalNetPaid: number;
+  totalGross: number;
+  totalEarning: number;
+  totalDeduction: number;
+  payslips: StaffPayslip[];
+};
+
+export type StaffAttendanceCode = 'PRESENT' | 'LATE' | 'ABSENT' | 'HALF_DAY' | 'HOLIDAY' | 'HALF_DAY_SECOND_HALF';
+
+export type StaffAttendanceSummary = {
+  year: number;
+  present: number;
+  late: number;
+  absent: number;
+  halfDay: number;
+  holiday: number;
+  halfDaySecondHalf: number;
+  /** "month-day" (e.g. "3-14") to the mark of that day. */
+  days: Record<string, StaffAttendanceCode>;
+};
+
+export type StaffLeaves = { balances: LeaveBalance[]; requests: LeaveRequestRow[] };
+
+export async function fetchStaffPayroll(id: string): Promise<StaffPayrollSummary> {
+  const { data } = await api.get<StaffPayrollSummary>(`/v1/staff-members/${id}/payroll`);
+  return data;
+}
+
+export async function fetchStaffLeaves(id: string): Promise<StaffLeaves> {
+  const { data } = await api.get<StaffLeaves>(`/v1/staff-members/${id}/leaves`);
+  return data;
+}
+
+export async function fetchStaffAttendance(id: string, year: number): Promise<StaffAttendanceSummary> {
+  const { data } = await api.get<StaffAttendanceSummary>(`/v1/staff-members/${id}/attendance`, { params: { year } });
+  return data;
+}
+
+export async function setStaffActive(id: string, active: boolean): Promise<StaffMember> {
+  const { data } = await api.patch<StaffMember>(`/v1/staff-members/${id}/status`, { active });
+  return data;
+}
+
+export async function resetStaffPassword(id: string): Promise<string> {
+  const { data } = await api.post<{ temporaryPassword: string }>(`/v1/staff-members/${id}/reset-password`);
+  return data.temporaryPassword;
 }

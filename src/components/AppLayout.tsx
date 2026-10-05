@@ -62,6 +62,7 @@ const STUDENT_INFO_GROUP = 'group:student-information';
 const FEES_GROUP = 'group:fees-collection';
 const EXPENSES_GROUP = 'group:expenses';
 const HR_GROUP = 'group:human-resource';
+const ATTENDANCE_GROUP = 'group:attendance';
 
 function AppLayout() {
   const navigate = useNavigate();
@@ -155,10 +156,15 @@ function AppLayout() {
         ],
       },
       {
-        key: '/app/attendance',
+        key: ATTENDANCE_GROUP,
         label: 'Attendance',
         icon: <CheckSquareOutlined />,
         visible: hasAnyRole(user?.roles, [ROLE.SCHOOL_ADMIN, ROLE.TEACHER]),
+        children: [
+          { key: '/app/attendance/student-attendance', label: 'Student Attendance', visible: true },
+          { key: '/app/attendance/approve-leave', label: 'Approve Leave', visible: hasRole(user?.roles, ROLE.SCHOOL_ADMIN) },
+          { key: '/app/attendance/attendance-by-date', label: 'Attendance By Date', visible: true },
+        ],
       },
       {
         key: '/app/exams',
@@ -222,8 +228,8 @@ function AppLayout() {
           { key: '/app/human-resource/apply-leave', label: 'Apply Leave', visible: hasPermission(user?.permissions, 'LEAVE_CREATE') },
           { key: '/app/human-resource/leave-type', label: 'Leave Type', visible: hasPermission(user?.permissions, 'LEAVE_TYPE_MANAGE') },
           { key: '/app/human-resource/teachers-rating', label: 'Teachers Rating', visible: hasPermission(user?.permissions, 'TEACHER_RATING_VIEW') },
-          { key: '/app/human-resource/department', label: 'Department', visible: isSchoolAdmin },
-          { key: '/app/human-resource/designation', label: 'Designation', visible: isSchoolAdmin },
+          { key: '/app/human-resource/department', label: 'Department', visible: hasPermission(user?.permissions, 'DEPARTMENT_MANAGE') },
+          { key: '/app/human-resource/designation', label: 'Designation', visible: hasPermission(user?.permissions, 'DESIGNATION_MANAGE') },
           { key: '/app/human-resource/disabled-staff', label: 'Disabled Staff', visible: isSchoolAdmin },
         ],
       },

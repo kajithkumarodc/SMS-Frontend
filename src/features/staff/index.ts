@@ -6,6 +6,8 @@ export { default as ImportStaffPage } from './directory/ImportStaffPage';
 export { default as StaffAttendancePage } from './attendance/StaffAttendancePage';
 export { default as ApproveLeavePage } from './leave/ApproveLeavePage';
 export { default as LeaveTypePage } from './leave/LeaveTypePage';
+export { default as DepartmentPage } from './department/DepartmentPage';
+export { default as DesignationPage } from './designation/DesignationPage';
 export { default as ApplyLeavePage } from './leave/ApplyLeavePage';
 export { default as StaffProfilePage } from './directory/StaffProfilePage';
 export { default as TeachersRatingPage } from './rating/TeachersRatingPage';
