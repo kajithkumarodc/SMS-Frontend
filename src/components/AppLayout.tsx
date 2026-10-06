@@ -416,7 +416,7 @@ function AppLayout() {
         style={{
           minHeight: `calc(100vh - ${token.marginLG * 2}px)`,
           borderRadius: token.borderRadiusLG * 1.3,
-          overflow: 'hidden',
+          overflow: 'clip',
           boxShadow: token.boxShadowTertiary,
         }}
       >
@@ -428,7 +428,14 @@ function AppLayout() {
           collapsed={collapsed}
           onBreakpoint={(broken) => setCollapsed(broken)}
           trigger={null}
-          style={{ borderInlineEnd: `1px solid ${token.colorBorderSecondary}` }}
+          style={{
+            borderInlineEnd: `1px solid ${token.colorBorderSecondary}`,
+            position: 'sticky',
+            top: 0,
+            alignSelf: 'flex-start',
+            height: '100vh',
+            overflowY: 'auto',
+          }}
         >
           <div
             style={{
@@ -440,6 +447,7 @@ function AppLayout() {
           >
             <span
               aria-hidden
+              className="sms-logo-mark"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -447,7 +455,6 @@ function AppLayout() {
                 width: 36,
                 height: 36,
                 borderRadius: token.borderRadius,
-                background: token.colorPrimary,
                 color: '#fff',
                 fontWeight: 700,
               }}
@@ -514,7 +521,9 @@ function AppLayout() {
             </Space>
           </Header>
           <Content style={{ padding: token.paddingLG }}>
-            <Outlet />
+            <div key={location.pathname} className="sms-page">
+              <Outlet />
+            </div>
           </Content>
         </Layout>
       </Layout>

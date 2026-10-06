@@ -73,3 +73,27 @@ export async function fetchDashboardSummary(): Promise<DashboardSummary> {
   const { data } = await api.get<DashboardSummary>('/v1/dashboard/summary');
   return data;
 }
+
+export type SuperAdminDashboardData = {
+  monthLabel: string;
+  sessionLabel: string;
+  money: { monthFees: number; monthExpenses: number; totalOutstanding: number };
+  people: { students: number; studentsPresentToday: number; activeStaff: number };
+  ratios: { key: string; label: string; value: number; total: number }[];
+  monthDaily: { day: number; fees: number; expenses: number }[];
+  sessionMonthly: { month: string; fees: number; expenses: number }[];
+  expenseByHead: { name: string; value: number }[];
+  fees: DashboardOverview;
+  enquiries: DashboardOverview;
+  library: DashboardOverview;
+  studentAttendance: DashboardOverview;
+  usersByRole: { name: string; value: number }[];
+};
+
+export type DashboardOverview = { total: number; items: { key: string; label: string; count: number }[] };
+
+/** SUPER_ADMIN only. */
+export async function fetchSuperAdminDashboard(): Promise<SuperAdminDashboardData> {
+  const { data } = await api.get<SuperAdminDashboardData>('/v1/dashboard/super-admin');
+  return data;
+}

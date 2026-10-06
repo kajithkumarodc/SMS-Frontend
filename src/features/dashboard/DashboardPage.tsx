@@ -26,7 +26,7 @@ import { buildSectionLookup } from '../classes/sectionLookup';
 import { DashboardAnnouncementsCard } from '../announcements';
 import { useAuthStore } from '../../store/authStore';
 import { hasRole, ROLE } from '../../lib/roles';
-import AdminDashboard from './AdminDashboard';
+import SuperAdminDashboard from './SuperAdminDashboard';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -69,10 +69,11 @@ function DashboardPage() {
 
   const greetingName = user?.name?.trim() || 'there';
   const roles = user?.roles ?? [];
+  const isSuperAdmin = hasRole(roles, ROLE.SUPER_ADMIN);
 
   return (
-    <div style={{ maxWidth: 1040, width: '100%', margin: '0 auto' }}>
-      <header style={{ marginBottom: token.marginXL }}>
+    <div style={{ maxWidth: isSuperAdmin ? 1320 : 1040, width: '100%', margin: '0 auto' }}>
+      <header style={{ marginBottom: token.marginXL, display: isSuperAdmin ? 'none' : undefined }}>
         <Text
           type="secondary"
           style={{ textTransform: 'uppercase', letterSpacing: 1, fontSize: token.fontSizeSM }}
@@ -142,7 +143,7 @@ function DashboardPage() {
 
       {data && data.teacher && <TeacherDashboard teacher={data.teacher} />}
 
-      {data && !data.placeholder && data.counts && <AdminDashboard counts={data.counts} />}
+      {isSuperAdmin && <SuperAdminDashboard greetingName={greetingName} today={TODAY} />}
 
       {data && data.placeholder && (
         <Card style={{ boxShadow: token.boxShadowTertiary }}>
