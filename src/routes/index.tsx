@@ -27,6 +27,7 @@ import {
   FrontOfficeSetupPage,
 } from '../features/frontoffice';
 import { AddExpensePage, ExpenseHeadPage, SearchExpensePage } from '../features/expenses';
+import { AnnualCalendarPage, HolidayTypePage } from '../features/calendar';
 import { ClassPage, ClassTimetablePage, CreateTimetablePage, AssignClassTeacherPage, SectionsPage, SubjectGroupPage, SubjectsPage, TeachersTimetablePage } from '../features/academics';
 import { AddItemPage, AddItemStockPage, IssueItemFormPage, IssueItemPage, ItemCategoryPage, ItemStorePage, ItemSupplierPage } from '../features/inventory';
 import { PromotionPage } from '../features/promotion';
@@ -196,6 +197,11 @@ function AppRoutes() {
             <Route path="add-expense" element={<AddExpensePage />} />
             <Route path="search-expense" element={<SearchExpensePage />} />
             <Route path="expense-head" element={<ExpenseHeadPage />} />
+          </Route>
+          <Route path="calendar">
+            <Route index element={<Navigate to="annual-calendar" replace />} />
+            <Route path="annual-calendar" element={<AnnualCalendarPage />} />
+            <Route path="holiday-type" element={<HolidayTypePage />} />
           </Route>
           <Route path="academics">
             <Route index element={<Navigate to="class-timetable" replace />} />

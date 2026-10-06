@@ -66,6 +66,7 @@ const HR_GROUP = 'group:human-resource';
 const ATTENDANCE_GROUP = 'group:attendance';
 const INVENTORY_GROUP = 'group:inventory';
 const ACADEMICS_GROUP = 'group:academics';
+const CALENDAR_GROUP = 'group:annual-calendar';
 
 function AppLayout() {
   const navigate = useNavigate();
@@ -197,6 +198,16 @@ function AppLayout() {
           { key: '/app/academics/subjects', label: 'Subjects', visible: hasPermission(user?.permissions, 'SUBJECT_MANAGE') },
           { key: '/app/classes', label: 'Class', visible: isSchoolAdmin },
           { key: '/app/academics/sections', label: 'Sections', visible: isSchoolAdmin },
+        ],
+      },
+      {
+        key: CALENDAR_GROUP,
+        label: 'Annual Calendar',
+        icon: <CalendarOutlined />,
+        visible: hasPermission(user?.permissions, 'CALENDAR_VIEW'),
+        children: [
+          { key: '/app/calendar/annual-calendar', label: 'Annual Calendar', visible: true },
+          { key: '/app/calendar/holiday-type', label: 'Holiday Type', visible: hasPermission(user?.permissions, 'CALENDAR_MANAGE') },
         ],
       },
       {
