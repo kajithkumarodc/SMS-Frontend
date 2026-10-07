@@ -5,6 +5,13 @@ import { App as AntdApp, ConfigProvider } from 'antd';
 import App from './App';
 import './index.css';
 import { queryClient } from './lib/queryClient';
+import { installMagneticGlow } from './lib/magneticGlow';
+
+installMagneticGlow();
+
+// "Magnetic Modern UI" -- aqua glass: airy pale-blue surfaces, deep navy anchors, teal/cyan highlights.
+const NAVY = '#17376B';
+const INK = '#0F2547';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -12,54 +19,43 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <ConfigProvider
         theme={{
           token: {
-            colorPrimary: '#8A63F2',
-            colorInfo: '#8A63F2',
-            colorLink: '#8A63F2',
-            colorBgLayout: '#EEF0FB',
+            colorPrimary: NAVY,
+            colorInfo: '#0EA5C6',
+            colorSuccess: '#10B981',
+            colorWarning: '#F59E0B',
+            colorError: '#EF4444',
+            colorLink: '#1D6FD1',
+            colorBgLayout: '#E8F0F9',
             colorBgContainer: '#FFFFFF',
+            colorText: INK,
+            colorTextSecondary: '#5B6F8F',
+            colorTextTertiary: '#8A9BB5',
+            colorBorderSecondary: 'rgba(23, 55, 107, 0.08)',
             borderRadius: 14,
-            borderRadiusLG: 18,
+            borderRadiusLG: 22,
             fontFamily: 'Inter, system-ui, sans-serif',
-            boxShadowTertiary:
-              '0 2px 8px 0 rgba(102, 90, 190, 0.06), 0 1px 2px 0 rgba(102, 90, 190, 0.08)',
+            boxShadowTertiary: '0 12px 32px -16px rgba(23, 55, 107, 0.25)',
           },
           components: {
-            Layout: {
-              headerBg: '#FFFFFF',
-              siderBg: '#FFFFFF',
-              bodyBg: '#F7F7FC',
-            },
+            Layout: { headerBg: 'rgba(255, 255, 255, 0.6)', siderBg: 'rgba(255, 255, 255, 0.55)', bodyBg: 'transparent' },
             Menu: {
               itemBg: 'transparent',
-              itemColor: '#6B7280',
-              itemHoverBg: '#F3F1FE',
-              itemHoverColor: '#8A63F2',
-              itemSelectedBg: '#8A63F2',
+              itemColor: '#5B6F8F',
+              itemHoverBg: 'rgba(14, 165, 198, 0.12)',
+              itemHoverColor: NAVY,
+              itemSelectedBg: NAVY,
               itemSelectedColor: '#FFFFFF',
-              itemBorderRadius: 12,
+              itemBorderRadius: 999,
               itemMarginInline: 8,
               iconSize: 16,
+              subMenuItemBg: 'transparent',
             },
-            Card: {
-              borderRadiusLG: 18,
-              boxShadowTertiary:
-                '0 2px 8px 0 rgba(102, 90, 190, 0.06), 0 1px 2px 0 rgba(102, 90, 190, 0.08)',
-            },
-            Button: {
-              borderRadius: 10,
-              controlHeight: 38,
-            },
-            Input: {
-              borderRadius: 10,
-              controlHeight: 38,
-            },
-            Tag: {
-              borderRadiusSM: 8,
-            },
-            Table: {
-              borderRadiusLG: 16,
-              headerBg: '#F7F7FC',
-            },
+            Card: { borderRadiusLG: 22, headerBg: 'transparent' },
+            Button: { borderRadius: 999, controlHeight: 38, primaryShadow: 'none' },
+            Input: { borderRadius: 12, controlHeight: 38 },
+            Tag: { borderRadiusSM: 999 },
+            Table: { borderRadiusLG: 18, headerBg: '#EEF4FB', rowHoverBg: 'rgba(14, 165, 198, 0.07)' },
+            Segmented: { itemSelectedBg: NAVY, itemSelectedColor: '#fff', trackBg: 'rgba(23,55,107,0.07)' },
           },
         }}
       >

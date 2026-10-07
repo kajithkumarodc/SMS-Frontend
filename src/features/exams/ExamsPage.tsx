@@ -21,7 +21,7 @@ import { fetchExams, type Exam } from '../../api/exams';
 import { useAuthStore } from '../../store/authStore';
 import { hasAnyRole, ROLE } from '../../lib/roles';
 import { CLASSES_QUERY_KEY, SUBJECTS_QUERY_KEY } from '../classes/queryKeys';
-import { buildSectionLookup, buildSectionSelectOptions } from '../classes/sectionLookup';
+import { buildSectionLookup, buildSectionSelectOptions, hasSelectableSection } from '../classes/sectionLookup';
 import { EXAMS_QUERY_KEY } from './queryKeys';
 import AddExamModal from './AddExamModal';
 import ExamGradebook from './ExamGradebook';
@@ -127,7 +127,7 @@ function ExamsPage() {
         </Space>
       </Card>
 
-      {classesQuery.isSuccess && sectionOptions.length === 0 && (
+      {classesQuery.isSuccess && !hasSelectableSection(classesQuery.data) && (
         <Alert
           type="info"
           showIcon
@@ -140,7 +140,7 @@ function ExamsPage() {
         />
       )}
 
-      {sectionId === '' && sectionOptions.length > 0 && (
+      {sectionId === '' && hasSelectableSection(classesQuery.data) && (
         <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Select a section to see its class's exams." />
       )}
 

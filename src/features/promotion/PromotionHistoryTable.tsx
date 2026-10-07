@@ -24,7 +24,7 @@ function PromotionHistoryTable() {
   const sectionLabel = (sectionId: string | null): string => {
     if (!sectionId) return '—';
     const info = sectionLookup.get(sectionId);
-    return info ? `${info.className} · ${info.sectionName}` : 'Unknown section';
+    return info ? info.label : 'Unknown section';
   };
 
   const rows = historyQuery.data?.content ?? [];

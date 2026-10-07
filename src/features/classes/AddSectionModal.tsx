@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { App, Form, Input, Modal } from 'antd';
-import { createSection, DuplicateNameError } from '../../api/classes';
+import { createSection, DuplicateNameError, renameSection } from '../../api/classes';
 import { CLASSES_QUERY_KEY } from './queryKeys';
 
 const schema = z.object({
@@ -14,8 +14,8 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 type Props = {
-  /** The class to add a section to; `null` keeps the modal closed. */
-  target: { id: string; name: string } | null;
+  /** The class to add a section to (or whose `section` to rename); `null` keeps the modal closed. */
+  target: { id: string; name: string; section?: { id: string; name: string } } | null;
   onClose: () => void;
 };
 
@@ -37,7 +37,7 @@ function AddSectionModal({ target, onClose }: Props) {
 
   useEffect(() => {
     if (target) {
-      reset({ name: '' });
+      reset({ name: target.section?.name ?? '' });
     }
   }, [target, reset]);
 
@@ -46,10 +46,12 @@ function AddSectionModal({ target, onClose }: Props) {
       if (!target) {
         return Promise.reject(new Error('No class selected'));
       }
-      return createSection(target.id, values.name.trim());
+      return target.section
+        ? renameSection(target.id, target.section.id, values.name.trim())
+        : createSection(target.id, values.name.trim());
     },
     onSuccess: (created) => {
-      message.success(`Section "${created.name}" added`);
+      message.success(target?.section ? `Section renamed to "${created.name}"` : `Section "${created.name}" added`);
       void queryClient.invalidateQueries({ queryKey: CLASSES_QUERY_KEY });
       onClose();
     },
@@ -58,7 +60,7 @@ function AddSectionModal({ target, onClose }: Props) {
         setError('name', { type: 'server', message: error.message });
         return;
       }
-      message.error('Could not add the section. Please try again.');
+      message.error(`Could not ${target?.section ? 'rename' : 'add'} the section. Please try again.`);
     },
   });
 
@@ -66,13 +68,13 @@ function AddSectionModal({ target, onClose }: Props) {
 
   return (
     <Modal
-      title={target ? `Add section to ${target.name}` : 'Add section'}
+      title={target?.section ? `Rename section ${target.section.name} (${target.name})` : target ? `Add section to ${target.name}` : 'Add section'}
       open={target !== null}
       onCancel={onClose}
       onOk={submit}
-      okText="Add section"
+      okText={target?.section ? 'Save' : 'Add section'}
       confirmLoading={mutation.isPending}
-      destroyOnClose
+      destroyOnHidden
       maskClosable={!mutation.isPending}
     >
       <Form layout="vertical" requiredMark="optional" onFinish={submit}>
@@ -82,11 +84,12 @@ function AddSectionModal({ target, onClose }: Props) {
           render={({ field }) => (
             <Form.Item
               label="Section name"
+              htmlFor="section-name"
               required
               validateStatus={errors.name ? 'error' : undefined}
               help={errors.name?.message}
             >
-              <Input {...field} placeholder="e.g. A" autoComplete="off" autoFocus />
+              <Input {...field} id="section-name" placeholder="e.g. A" autoComplete="off" autoFocus />
             </Form.Item>
           )}
         />

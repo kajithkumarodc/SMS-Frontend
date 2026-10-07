@@ -1,7 +1,7 @@
 import api from '../lib/api';
 import type { Student } from './students';
 
-export type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'LATE';
+export type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'LATE' | 'HOLIDAY' | 'HALF_DAY';
 
 export type AttendanceRecord = {
   id: string;
@@ -55,4 +55,38 @@ export async function fetchStudentAttendanceHistory(studentId: string): Promise<
     { params: { size: 200 } },
   );
   return data.content;
+}
+
+/** One student on the Student Attendance page and the mark saved for the day, if any (`AttendanceDtos.RosterRow`). */
+export type StudentAttendanceRow = {
+  studentId: string;
+  admissionNumber: string;
+  rollNumber: string | null;
+  fullName: string;
+  status: AttendanceStatus | null;
+  date: string | null;
+  source: string;
+  /** `HH:mm:ss`, or null. */
+  entryTime: string | null;
+  exitTime: string | null;
+  note: string | null;
+};
+
+export type StudentAttendanceEntry = {
+  studentId: string;
+  status: AttendanceStatus;
+  /** `HH:mm` */
+  entryTime: string | null;
+  exitTime: string | null;
+  note: string | null;
+};
+
+export async function fetchAttendanceRoster(sectionId: string, date: string): Promise<StudentAttendanceRow[]> {
+  const { data } = await api.get<StudentAttendanceRow[]>('/v1/attendance/roster', { params: { sectionId, date } });
+  return data;
+}
+
+export async function saveSectionAttendance(sectionId: string, date: string, entries: StudentAttendanceEntry[]): Promise<number> {
+  const { data } = await api.put<{ saved: number }>('/v1/attendance/bulk', { sectionId, date, entries });
+  return data.saved;
 }

@@ -83,7 +83,45 @@ export type Student = {
   transportRouteId: string | null;
   hostelRoomId: string | null;
   createdAt: string;
+  extra: StudentExtra;
 };
+
+/** Admission-form fields added with the Smart School layout (medium, caste, bank details, ...). */
+export type StudentExtra = {
+  mediumId: string | null;
+  caste: string | null;
+  mobileNumber: string | null;
+  email: string | null;
+  height: string | null;
+  weight: string | null;
+  measurementDate: string | null;
+  medicalHistory: string | null;
+  guardianAddress: string | null;
+  bankAccountNumber: string | null;
+  bankName: string | null;
+  ifscCode: string | null;
+  note: string | null;
+};
+
+export type StudentImportRow = {
+  row: number;
+  admissionNumber: string | null;
+  name: string;
+  status: 'IMPORTED' | 'SKIPPED';
+  messages: string[];
+};
+export type StudentImportResult = { imported: number; skipped: number; rows: StudentImportRow[] };
+
+/** Admits every row of a Smart School format CSV into one section. */
+export async function importStudents(file: File, sectionId: string, mediumId?: string): Promise<StudentImportResult> {
+  const form = new FormData();
+  form.append('file', file);
+  const { data } = await api.post<StudentImportResult>('/v1/students/import', form, {
+    params: { sectionId, mediumId },
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return data;
+}
 
 /** Shape of Spring's `PagedModel` response. */
 export type StudentsPage = {
@@ -122,6 +160,27 @@ export type StudentSearchParams = {
 
 export async function searchStudents(params: StudentSearchParams): Promise<StudentsPage> {
   const { data } = await api.get<StudentsPage>('/v1/students', { params });
+  return data;
+}
+
+/** Every student matching the filters (all pages), for screens that list, sort and export on the client. */
+export async function fetchAllStudents(params: Omit<StudentSearchParams, 'page' | 'size'>): Promise<Student[]> {
+  const size = 500;
+  const all: Student[] = [];
+  for (let page = 0; page < 40; page += 1) {
+    const result = await searchStudents({ ...params, page, size });
+    all.push(...result.content);
+    if (page + 1 >= result.page.totalPages) break;
+  }
+  return all;
+}
+
+export type IdentificationLookupEntry = { studentId: string; idType: string; idValue: string };
+
+/** National ID, local ID etc. of many students at once. */
+export async function lookupIdentifications(studentIds: string[]): Promise<IdentificationLookupEntry[]> {
+  if (studentIds.length === 0) return [];
+  const { data } = await api.post<IdentificationLookupEntry[]>('/v1/students/identifications/lookup', { studentIds });
   return data;
 }
 
@@ -196,6 +255,8 @@ export type CreateStudentInput = {
   whatsappNotificationsEnabled?: boolean;
   emailNotificationsEnabled?: boolean;
   preferredLanguage?: PreferredLanguage;
+  /** Omitted/null on update = leave the extra fields unchanged. */
+  extra?: Partial<StudentExtra> | null;
 };
 
 /**
@@ -230,6 +291,47 @@ export type UpdateStudentInput = Omit<CreateStudentInput, 'schoolId' | 'admissio
 /** Edit a student's mutable fields. admission_number/schoolId are immutable server-side and not sent. */
 export async function updateStudent(id: string, input: UpdateStudentInput): Promise<Student> {
   const { data } = await api.put<Student>(`/v1/students/${id}`, input);
+  return data;
+}
+
+/** One student's full record (staff only server-side). */
+export async function fetchStudent(id: string): Promise<Student> {
+  const { data } = await api.get<Student>(`/v1/students/${id}`);
+  return data;
+}
+
+/** A student row on the Bulk Delete screen; `deletable` is false while dependent history exists. */
+export type BulkDeleteCandidate = {
+  id: string;
+  admissionNumber: string;
+  fullName: string;
+  className: string;
+  /** Null when the student is in a class without sections. */
+  sectionName: string | null;
+  dateOfBirth: string | null;
+  gender: string | null;
+  category: string | null;
+  status: StudentStatus;
+  mobile: string | null;
+  deletable: boolean;
+  blockReason: string | null;
+};
+
+export async function fetchBulkDeleteCandidates(classId: string, sectionId?: string): Promise<BulkDeleteCandidate[]> {
+  const { data } = await api.get<BulkDeleteCandidate[]>('/v1/students/bulk-delete/candidates', {
+    params: { classId, sectionId },
+  });
+  return data;
+}
+
+export type BulkDeleteResult = {
+  deleted: { id: string; admissionNumber: string; fullName: string }[];
+  skipped: { id: string; admissionNumber: string | null; fullName: string | null; reason: string }[];
+};
+
+/** Permanently deletes students that have no dependent history; the rest come back in `skipped`. */
+export async function bulkDeleteStudents(studentIds: string[]): Promise<BulkDeleteResult> {
+  const { data } = await api.post<BulkDeleteResult>('/v1/students/bulk-delete', { studentIds });
   return data;
 }
 

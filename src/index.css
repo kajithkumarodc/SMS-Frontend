@@ -2,8 +2,8 @@
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: #111827;
-  background: #eef0fb;
+  color: #0f2547;
+  background: #e8f0f9;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -30,4 +30,131 @@ a {
 
 button, input, select, textarea {
   font: inherit;
+}
+
+/* ---------- Magnetic Modern UI: aqua glass (applies to every page) ---------- */
+:root {
+  color-scheme: light;
+  --sms-navy: #17376b;
+  --sms-ink: #0f2547;
+  --sms-teal: #14b8a6;
+  --sms-cyan: #0ea5c6;
+  --sms-line: rgba(23, 55, 107, 0.08);
+  --sms-glass: rgba(255, 255, 255, 0.72);
+  --sms-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* Ambient aqua wash behind everything */
+body { background: linear-gradient(160deg, #eef4fb 0%, #e3eef9 50%, #dff1f4 100%); }
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(620px 440px at 5% -8%, rgba(20, 184, 166, 0.22), transparent 70%),
+    radial-gradient(560px 420px at 100% 5%, rgba(59, 130, 246, 0.20), transparent 70%),
+    radial-gradient(520px 420px at 55% 112%, rgba(14, 165, 198, 0.18), transparent 70%);
+  animation: sms-aurora 20s ease-in-out infinite alternate;
+}
+#root { position: relative; z-index: 1; }
+@keyframes sms-aurora { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(-2%, 3%, 0) scale(1.08); } }
+
+::selection { background: rgba(14, 165, 198, 0.3); }
+* { scrollbar-width: thin; scrollbar-color: #b7c9e0 transparent; }
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-thumb { background: #b7c9e0; border-radius: 99px; }
+*::-webkit-scrollbar-thumb:hover { background: #8fa9cc; }
+:focus-visible { outline: 2px solid var(--sms-cyan); outline-offset: 2px; }
+
+@keyframes sms-page-in { from { opacity: 0; transform: translateY(14px) scale(0.995); } to { opacity: 1; transform: none; } }
+.sms-page { animation: sms-page-in 0.5s var(--sms-ease) both; }
+
+/* Cards: frosted glass + cursor spotlight */
+.ant-card, .sms-glow {
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  background: var(--sms-glass);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 14px 36px -20px rgba(23, 55, 107, 0.28);
+  transition: transform 0.3s var(--sms-ease), box-shadow 0.3s var(--sms-ease), border-color 0.3s;
+}
+.ant-card::after, .sms-glow::after, .sad-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+  background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), rgba(20, 184, 166, 0.18), transparent 70%);
+}
+.ant-card:hover, .sms-glow:hover {
+  transform: translateY(-3px);
+  border-color: rgba(14, 165, 198, 0.45);
+  box-shadow: 0 24px 46px -22px rgba(23, 55, 107, 0.4);
+}
+.ant-card:hover::after, .sms-glow:hover::after, .sad-card:hover::after { opacity: 1; }
+.ant-card-head { border-bottom: 1px solid var(--sms-line); min-height: 52px; }
+.ant-card-head-title { font-weight: 600; color: var(--sms-ink); }
+
+h1.ant-typography, h2.ant-typography, h3.ant-typography, h4.ant-typography { color: var(--sms-ink); letter-spacing: -0.015em; }
+h2.ant-typography { font-weight: 700; }
+
+/* Tables */
+.ant-table-wrapper .ant-table { border-radius: 18px; overflow: hidden; background: transparent; }
+.ant-table-wrapper .ant-table-thead > tr > th {
+  background: rgba(23, 55, 107, 0.06) !important;
+  color: #3d5578;
+  font-weight: 600;
+  font-size: 12.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--sms-line);
+}
+.ant-table-wrapper .ant-table-tbody > tr > td { transition: background 0.2s; border-bottom-color: var(--sms-line); background: transparent; }
+.ant-table-wrapper .ant-table-tbody > tr:hover > td { background: rgba(14, 165, 198, 0.08) !important; }
+.ant-table-wrapper .ant-table-tbody > tr { animation: sms-page-in 0.45s var(--sms-ease) both; }
+.ant-table-wrapper .ant-table-tbody > tr:nth-child(n + 12) { animation: none; }
+.ant-pagination .ant-pagination-item-active { border-color: var(--sms-navy); background: var(--sms-navy); }
+.ant-pagination .ant-pagination-item-active a { color: #fff; }
+
+/* Buttons (pill) & inputs */
+.ant-btn { transition: transform 0.15s var(--sms-ease), box-shadow 0.25s, background 0.2s, border-color 0.2s, color 0.2s; }
+.ant-btn:not(:disabled):active { transform: scale(0.96); }
+.ant-btn-primary { background: linear-gradient(135deg, #17376b, #1d5fa8); border: none; }
+.ant-btn-primary:not(:disabled):hover { background: linear-gradient(135deg, #1d4584, #1f78c4) !important; box-shadow: 0 12px 24px -10px rgba(23, 55, 107, 0.8); transform: translateY(-1px); }
+.ant-input, .ant-input-affix-wrapper, .ant-select-selector, .ant-picker, .ant-input-number { transition: box-shadow 0.25s, border-color 0.25s, background 0.25s !important; background: rgba(255, 255, 255, 0.8); }
+.ant-input:focus, .ant-input-affix-wrapper-focused, .ant-select-focused .ant-select-selector, .ant-picker-focused {
+  box-shadow: 0 0 0 3px rgba(14, 165, 198, 0.25) !important;
+  border-color: var(--sms-cyan) !important;
+}
+.ant-form-item-label > label { font-weight: 500; color: #3d5578; }
+
+.ant-tabs .ant-tabs-tab { transition: color 0.2s; font-weight: 500; }
+.ant-tabs .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn { color: var(--sms-navy); font-weight: 600; }
+.ant-tabs .ant-tabs-ink-bar { height: 3px; border-radius: 3px; background: linear-gradient(90deg, #17376b, #14b8a6); }
+.ant-tag { font-weight: 500; border: none; }
+.ant-modal .ant-modal-content { border-radius: 26px; padding: 26px 28px; background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(18px); box-shadow: 0 40px 90px -24px rgba(23, 55, 107, 0.45); }
+.ant-modal .ant-modal-header { margin-bottom: 16px; background: transparent; }
+.ant-modal .ant-modal-title { font-size: 18px; font-weight: 600; color: var(--sms-ink); }
+.ant-drawer .ant-drawer-header { border-bottom: 1px solid var(--sms-line); }
+.ant-statistic-content-value { color: var(--sms-ink); font-weight: 700; }
+.ant-alert { border-radius: 16px; }
+
+/* Shell: glass sidebar + header, navy pill nav */
+.ant-layout { background: transparent !important; }
+.ant-layout-header { backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); position: sticky; top: 0; z-index: 20; }
+.ant-layout-sider { backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+.ant-menu { background: transparent; }
+.ant-menu-inline .ant-menu-item, .ant-menu-inline .ant-menu-submenu-title { transition: background 0.2s, color 0.2s, transform 0.2s; }
+.ant-menu-inline .ant-menu-item-selected { background: linear-gradient(135deg, #17376b, #1d5fa8) !important; box-shadow: 0 12px 24px -10px rgba(23, 55, 107, 0.75); }
+.ant-menu-inline .ant-menu-item:not(.ant-menu-item-selected):hover { transform: translateX(3px); }
+.sms-logo-mark { background: linear-gradient(135deg, #17376b, #14b8a6); box-shadow: 0 10px 22px -8px rgba(23, 55, 107, 0.7); }
+
+@media (prefers-reduced-motion: reduce) {
+  body::before, .sms-page, .ant-table-wrapper .ant-table-tbody > tr { animation: none; }
+  .ant-card, .sms-glow, .ant-btn, .ant-menu-item { transition: none !important; transform: none !important; }
 }

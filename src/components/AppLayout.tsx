@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Avatar, Badge, Button, Input, Layout, Menu, Space, Typography, theme } from 'antd';
 import type { MenuProps } from 'antd';
@@ -10,7 +10,9 @@ import {
   CalendarOutlined,
   CarOutlined,
   CheckSquareOutlined,
+  ClusterOutlined,
   ContactsOutlined,
+  CreditCardOutlined,
   DashboardOutlined,
   FileDoneOutlined,
   HomeOutlined,
@@ -23,40 +25,84 @@ import {
   ReadOutlined,
   SearchOutlined,
   SettingOutlined,
-  SolutionOutlined,
+  StarOutlined,
   SwapOutlined,
   TeamOutlined,
   TrophyOutlined,
   UserOutlined,
   WalletOutlined,
+  InboxOutlined,
 } from '@ant-design/icons';
-import { logout as logoutRequest } from '../api/auth';
+import { logout as logoutRequest, refreshSession } from '../api/auth';
 import { useAuthStore } from '../store/authStore';
 import { hasAnyRole, hasPermission, hasRole, ROLE } from '../lib/roles';
 import { ChangePasswordModal } from '../features/settings';
+import NotificationBell from './NotificationBell';
 
 const { Sider, Header, Content } = Layout;
 const { Text } = Typography;
 
 const LOGIN_ROUTE = '/login';
 
-type NavItem = {
+type NavLink = {
   key: string;
   label: string;
+  /** Defaults to true. A group is shown only if at least one of its links is visible. */
+  visible?: boolean;
+};
+
+type NavItem = NavLink & {
   icon: ReactNode;
   visible: boolean;
+  /** When set, the item is a collapsible group and `key` is only its open/close key, not a route. */
+  children?: NavLink[];
 };
+
+const FRONT_OFFICE_GROUP = 'group:front-office';
+const STUDENT_INFO_GROUP = 'group:student-information';
+const FEES_GROUP = 'group:fees-collection';
+const EXPENSES_GROUP = 'group:expenses';
+const HR_GROUP = 'group:human-resource';
+const ATTENDANCE_GROUP = 'group:attendance';
+const INVENTORY_GROUP = 'group:inventory';
+const ACADEMICS_GROUP = 'group:academics';
+const CALENDAR_GROUP = 'group:annual-calendar';
 
 function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
+  const saveUser = useAuthStore((state) => state.login);
+
+  // Permissions are fixed into the session at login. Re-read them when the app opens and whenever the tab
+  // regains focus, so pages added since (and role changes) show up without logging out.
+  useEffect(() => {
+    let cancelled = false;
+    const sync = () => {
+      refreshSession()
+        .then((fresh) => {
+          if (!cancelled) saveUser(fresh);
+        })
+        .catch(() => {
+          // Offline or a transient error: keep the current menu. A 401 already signs the user out.
+        });
+    };
+    sync();
+    window.addEventListener('focus', sync);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('focus', sync);
+    };
+  }, [saveUser]);
   const { token } = theme.useToken();
   const [loggingOut, setLoggingOut] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
   const primaryRole = user?.roles?.[0];
+
+  const canEnquiries = hasPermission(user?.permissions, 'ENQUIRY_VIEW');
+  const isSchoolAdmin = hasRole(user?.roles, ROLE.SCHOOL_ADMIN);
 
   const navItems: NavItem[] = useMemo(
     () => [
@@ -67,40 +113,62 @@ function AppLayout() {
         visible: true,
       },
       {
-        key: '/app/front-office',
+        key: FRONT_OFFICE_GROUP,
         label: 'Front Office',
         icon: <ContactsOutlined />,
-        visible: hasPermission(user?.permissions, 'ENQUIRY_VIEW'),
+        visible: true,
+        // Not-yet-built pages stay on ENQUIRY_VIEW until each gets its own permissions.
+        children: [
+          { key: '/app/front-office/admission-enquiry', label: 'Admission Enquiry', visible: canEnquiries },
+          { key: '/app/front-office/visitor-book', label: 'Visitor Book', visible: hasPermission(user?.permissions, 'VISITOR_VIEW') },
+          { key: '/app/front-office/phone-call-log', label: 'Phone Call Log', visible: hasPermission(user?.permissions, 'PHONE_CALL_VIEW') },
+          { key: '/app/front-office/postal-dispatch', label: 'Postal Dispatch', visible: hasPermission(user?.permissions, 'POSTAL_DISPATCH_VIEW') },
+          { key: '/app/front-office/postal-receive', label: 'Postal Receive', visible: hasPermission(user?.permissions, 'POSTAL_RECEIVE_VIEW') },
+          { key: '/app/front-office/complaints', label: 'Complain', visible: hasPermission(user?.permissions, 'COMPLAINT_VIEW') },
+          { key: '/app/front-office/setup', label: 'Setup Front Office', visible: hasPermission(user?.permissions, 'FRONT_OFFICE_SETUP') },
+        ],
       },
       {
-        key: '/app/enquiries',
-        label: 'Enquiries',
-        icon: <ContactsOutlined />,
-        visible: hasPermission(user?.permissions, 'ENQUIRY_VIEW'),
-      },
-      {
-        key: '/app/admissions',
-        label: 'Online Admissions',
-        icon: <SolutionOutlined />,
-        visible: hasPermission(user?.permissions, 'ADMISSION_APPLICATION_VIEW'),
-      },
-      {
-        key: '/app/admission-cycles',
-        label: 'Admission Cycles',
-        icon: <CalendarOutlined />,
-        visible: hasPermission(user?.permissions, 'ADMISSION_CYCLE_VIEW'),
-      },
-      {
-        key: '/app/students',
-        label: 'Students',
+        key: STUDENT_INFO_GROUP,
+        label: 'Student Information',
         icon: <TeamOutlined />,
-        visible: hasAnyRole(user?.roles, [ROLE.SCHOOL_ADMIN, ROLE.TEACHER]),
+        visible: true,
+        // Pages not built yet are admin-only until each gets its own permissions.
+        children: [
+          {
+            key: '/app/student-information/student-details',
+            label: 'Student Details',
+            visible: hasAnyRole(user?.roles, [ROLE.SCHOOL_ADMIN, ROLE.TEACHER]),
+          },
+          { key: '/app/student-information/student-admission', label: 'Student Admission', visible: isSchoolAdmin },
+          {
+            key: '/app/student-information/online-admission',
+            label: 'Online Admission',
+            visible: hasPermission(user?.permissions, 'ADMISSION_APPLICATION_VIEW'),
+          },
+          {
+            key: '/app/student-information/admission-cycles',
+            label: 'Admission Cycles',
+            visible: hasPermission(user?.permissions, 'ADMISSION_CYCLE_VIEW'),
+          },
+          { key: '/app/student-information/disabled-students', label: 'Disabled Students', visible: isSchoolAdmin },
+          { key: '/app/student-information/multi-class-student', label: 'Multi Class Student', visible: isSchoolAdmin },
+          { key: '/app/student-information/bulk-delete', label: 'Bulk Delete', visible: isSchoolAdmin },
+          { key: '/app/student-information/student-categories', label: 'Student Categories', visible: isSchoolAdmin },
+          { key: '/app/student-information/student-house', label: 'Student House', visible: isSchoolAdmin },
+          { key: '/app/student-information/disable-reason', label: 'Disable Reason', visible: isSchoolAdmin },
+        ],
       },
       {
-        key: '/app/attendance',
+        key: ATTENDANCE_GROUP,
         label: 'Attendance',
         icon: <CheckSquareOutlined />,
         visible: hasAnyRole(user?.roles, [ROLE.SCHOOL_ADMIN, ROLE.TEACHER]),
+        children: [
+          { key: '/app/attendance/student-attendance', label: 'Student Attendance', visible: true },
+          { key: '/app/attendance/approve-leave', label: 'Approve Leave', visible: hasRole(user?.roles, ROLE.SCHOOL_ADMIN) },
+          { key: '/app/attendance/attendance-by-date', label: 'Attendance By Date', visible: true },
+        ],
       },
       {
         key: '/app/exams',
@@ -109,28 +177,113 @@ function AppLayout() {
         visible: hasAnyRole(user?.roles, [ROLE.SCHOOL_ADMIN, ROLE.TEACHER]),
       },
       {
-        key: '/app/classes',
-        label: 'Classes',
+        key: ACADEMICS_GROUP,
+        label: 'Academics',
         icon: <ApartmentOutlined />,
-        visible: hasRole(user?.roles, ROLE.SCHOOL_ADMIN),
+        visible:
+          hasRole(user?.roles, ROLE.SCHOOL_ADMIN) ||
+          hasPermission(user?.permissions, 'TIMETABLE_VIEW') ||
+          hasPermission(user?.permissions, 'SUBJECT_MANAGE') ||
+          hasPermission(user?.permissions, 'STUDENT_PROMOTE'),
+        children: [
+          { key: '/app/academics/class-timetable', label: 'Class Timetable', visible: hasPermission(user?.permissions, 'TIMETABLE_VIEW') },
+          {
+            key: '/app/academics/teachers-timetable',
+            label: 'Teachers Timetable',
+            visible: hasPermission(user?.permissions, 'TIMETABLE_VIEW') && hasPermission(user?.permissions, 'STAFF_VIEW'),
+          },
+          { key: '/app/academics/assign-class-teacher', label: 'Assign Class Teacher', visible: isSchoolAdmin },
+          { key: '/app/promotion', label: 'Promote Students', visible: hasPermission(user?.permissions, 'STUDENT_PROMOTE') },
+          { key: '/app/academics/subject-group', label: 'Subject Group', visible: hasPermission(user?.permissions, 'SUBJECT_MANAGE') },
+          { key: '/app/academics/subjects', label: 'Subjects', visible: hasPermission(user?.permissions, 'SUBJECT_MANAGE') },
+          { key: '/app/classes', label: 'Class', visible: isSchoolAdmin },
+          { key: '/app/academics/sections', label: 'Sections', visible: isSchoolAdmin },
+        ],
       },
       {
-        key: '/app/fees',
-        label: 'Fees',
-        icon: <WalletOutlined />,
-        visible: hasRole(user?.roles, ROLE.SCHOOL_ADMIN),
+        key: CALENDAR_GROUP,
+        label: 'Annual Calendar',
+        icon: <CalendarOutlined />,
+        visible: hasPermission(user?.permissions, 'CALENDAR_VIEW'),
+        children: [
+          { key: '/app/calendar/annual-calendar', label: 'Annual Calendar', visible: true },
+          { key: '/app/calendar/holiday-type', label: 'Holiday Type', visible: hasPermission(user?.permissions, 'CALENDAR_MANAGE') },
+        ],
       },
       {
-        key: '/app/fee-collection',
-        label: 'Fee Collection',
+        key: FEES_GROUP,
+        label: 'Fees Collection',
         icon: <WalletOutlined />,
-        visible: hasPermission(user?.permissions, 'FEE_COLLECT'),
+        visible: true,
+        // Pages not built yet are admin-only until each gets its own permissions.
+        children: [
+          {
+            key: '/app/fees-collection/collect-fees',
+            label: 'Collect Fees',
+            visible: hasPermission(user?.permissions, 'FEE_COLLECT'),
+          },
+          { key: '/app/fees-collection/offline-bank-payments', label: 'Offline Bank Payments', visible: isSchoolAdmin },
+          { key: '/app/fees-collection/search-fees-payment', label: 'Search Fees Payment', visible: isSchoolAdmin },
+          { key: '/app/fees-collection/search-due-fees', label: 'Search Due Fees', visible: isSchoolAdmin },
+          { key: '/app/fees-collection/fees-master', label: 'Fees Master', visible: isSchoolAdmin },
+          { key: '/app/fees-collection/quick-fees', label: 'Quick Fees', visible: isSchoolAdmin },
+          { key: '/app/fees-collection/fees-group', label: 'Fees Group', visible: isSchoolAdmin },
+          { key: '/app/fees-collection/fees-type', label: 'Fees Type', visible: isSchoolAdmin },
+          { key: '/app/fees-collection/fees-discount', label: 'Fees Discount', visible: isSchoolAdmin },
+          { key: '/app/fees-collection/fees-carry-forward', label: 'Fees Carry Forward', visible: isSchoolAdmin },
+          { key: '/app/fees-collection/fees-reminder', label: 'Fees Reminder', visible: isSchoolAdmin },
+        ],
+      },
+      {
+        key: EXPENSES_GROUP,
+        label: 'Expenses',
+        icon: <CreditCardOutlined />,
+        visible: true,
+        // Pages not built yet are admin-only until each gets its own permissions.
+        children: [
+          { key: '/app/expenses/add-expense', label: 'Add Expense', visible: hasPermission(user?.permissions, 'EXPENSE_VIEW') },
+          { key: '/app/expenses/search-expense', label: 'Search Expense', visible: hasPermission(user?.permissions, 'EXPENSE_VIEW') },
+          { key: '/app/expenses/expense-head', label: 'Expense Head', visible: hasPermission(user?.permissions, 'EXPENSE_VIEW') },
+        ],
+      },
+      {
+        key: HR_GROUP,
+        label: 'Human Resource',
+        icon: <ClusterOutlined />,
+        visible: true,
+        // Pages not built yet are admin-only until each gets its own permissions.
+        children: [
+          { key: '/app/human-resource/staff-directory', label: 'Staff Directory', visible: hasPermission(user?.permissions, 'STAFF_VIEW') },
+          { key: '/app/human-resource/staff-attendance', label: 'Staff Attendance', visible: hasPermission(user?.permissions, 'STAFF_ATTENDANCE_VIEW') },
+          { key: '/app/human-resource/payroll', label: 'Payroll', visible: hasPermission(user?.permissions, 'PAYROLL_VIEW') },
+          { key: '/app/human-resource/approve-leave-request', label: 'Approve Leave Request', visible: hasPermission(user?.permissions, 'LEAVE_APPROVE') },
+          { key: '/app/human-resource/apply-leave', label: 'Apply Leave', visible: hasPermission(user?.permissions, 'LEAVE_CREATE') },
+          { key: '/app/human-resource/leave-type', label: 'Leave Type', visible: hasPermission(user?.permissions, 'LEAVE_TYPE_MANAGE') },
+          { key: '/app/human-resource/teachers-rating', label: 'Teachers Rating', visible: hasPermission(user?.permissions, 'TEACHER_RATING_VIEW') },
+          { key: '/app/human-resource/department', label: 'Department', visible: hasPermission(user?.permissions, 'DEPARTMENT_MANAGE') },
+          { key: '/app/human-resource/designation', label: 'Designation', visible: hasPermission(user?.permissions, 'DESIGNATION_MANAGE') },
+          { key: '/app/human-resource/disabled-staff', label: 'Disabled Staff', visible: isSchoolAdmin },
+        ],
       },
       {
         key: '/app/library',
         label: 'Library',
         icon: <BookOutlined />,
         visible: hasAnyRole(user?.roles, [ROLE.SCHOOL_ADMIN, ROLE.TEACHER]),
+      },
+      {
+        key: INVENTORY_GROUP,
+        label: 'Inventory',
+        icon: <InboxOutlined />,
+        visible: hasPermission(user?.permissions, 'INVENTORY_VIEW'),
+        children: [
+          { key: '/app/inventory/issue-item', label: 'Issue Item', visible: true },
+          { key: '/app/inventory/add-item-stock', label: 'Add Item Stock', visible: hasPermission(user?.permissions, 'INVENTORY_MANAGE') },
+          { key: '/app/inventory/add-item', label: 'Add Item', visible: hasPermission(user?.permissions, 'INVENTORY_MANAGE') },
+          { key: '/app/inventory/item-category', label: 'Item Category', visible: hasPermission(user?.permissions, 'INVENTORY_MANAGE') },
+          { key: '/app/inventory/item-store', label: 'Item Store', visible: hasPermission(user?.permissions, 'INVENTORY_MANAGE') },
+          { key: '/app/inventory/item-supplier', label: 'Item Supplier', visible: hasPermission(user?.permissions, 'INVENTORY_MANAGE') },
+        ],
       },
       {
         key: '/app/transport',
@@ -145,18 +298,6 @@ function AppLayout() {
         visible: hasAnyRole(user?.roles, [ROLE.SCHOOL_ADMIN, ROLE.TEACHER]),
       },
       {
-        key: '/app/staff',
-        label: 'Staff',
-        icon: <IdcardOutlined />,
-        visible: hasRole(user?.roles, ROLE.SCHOOL_ADMIN),
-      },
-      {
-        key: '/app/leave-requests',
-        label: 'Leave Requests',
-        icon: <FileDoneOutlined />,
-        visible: hasRole(user?.roles, ROLE.SCHOOL_ADMIN),
-      },
-      {
         key: '/app/reports',
         label: 'Reports',
         icon: <BarChartOutlined />,
@@ -167,12 +308,6 @@ function AppLayout() {
         label: 'Announcements',
         icon: <NotificationOutlined />,
         visible: hasRole(user?.roles, ROLE.SCHOOL_ADMIN),
-      },
-      {
-        key: '/app/promotion',
-        label: 'Promotion',
-        icon: <SwapOutlined />,
-        visible: hasPermission(user?.permissions, 'STUDENT_PROMOTE'),
       },
       {
         key: '/app/settings',
@@ -211,6 +346,12 @@ function AppLayout() {
         visible: hasRole(user?.roles, ROLE.STUDENT),
       },
       {
+        key: '/app/my-teachers',
+        label: 'Rate Teachers',
+        icon: <StarOutlined />,
+        visible: hasRole(user?.roles, ROLE.STUDENT),
+      },
+      {
         key: '/app/my-profile',
         label: 'My Profile',
         icon: <UserOutlined />,
@@ -220,12 +361,40 @@ function AppLayout() {
     [user?.roles, user?.permissions],
   );
 
-  const menuItems: MenuProps['items'] = navItems
-    .filter((item) => item.visible)
-    .map((item) => ({ key: item.key, label: item.label, icon: item.icon }));
+  const visibleItems = navItems
+    .map((item) => (item.children ? { ...item, children: item.children.filter((c) => c.visible !== false) } : item))
+    .filter((item) => item.visible && (!item.children || item.children.length > 0));
 
-  const selectedKey =
-    navItems.find((item) => location.pathname.startsWith(item.key))?.key ?? '/app/dashboard';
+  const menuItems: MenuProps['items'] = visibleItems.map((item) =>
+    item.children
+      ? {
+          key: item.key,
+          label: item.label,
+          icon: item.icon,
+          children: item.children.map((child) => ({ key: child.key, label: child.label })),
+        }
+      : { key: item.key, label: item.label, icon: item.icon },
+  );
+
+  // Longest matching route wins, so /app/front-office/visitor-book selects Visitor Book.
+  const routeLinks = visibleItems.flatMap((item): (NavLink & { group?: string })[] =>
+    item.children ? item.children.map((child) => ({ ...child, group: item.key })) : [{ key: item.key, label: item.label }],
+  );
+  const selectedLink = routeLinks
+    .filter((link) => location.pathname.startsWith(link.key))
+    .sort((a, b) => b.key.length - a.key.length)[0];
+  const selectedKey = selectedLink?.key ?? '/app/dashboard';
+
+  const [openKeys, setOpenKeys] = useState<string[]>(() => (selectedLink?.group ? [selectedLink.group] : []));
+  // Auto-open a group when navigation enters it, but let the user collapse it afterwards.
+  const activeGroup = selectedLink?.group;
+  const [lastActiveGroup, setLastActiveGroup] = useState(activeGroup);
+  if (activeGroup !== lastActiveGroup) {
+    setLastActiveGroup(activeGroup);
+    if (activeGroup && !openKeys.includes(activeGroup)) {
+      setOpenKeys([...openKeys, activeGroup]);
+    }
+  }
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -247,19 +416,26 @@ function AppLayout() {
         style={{
           minHeight: `calc(100vh - ${token.marginLG * 2}px)`,
           borderRadius: token.borderRadiusLG * 1.3,
-          overflow: 'hidden',
+          overflow: 'clip',
           boxShadow: token.boxShadowTertiary,
         }}
       >
         <Sider
-          width={240}
+          width={260}
           theme="light"
           breakpoint="lg"
           collapsedWidth={0}
           collapsed={collapsed}
           onBreakpoint={(broken) => setCollapsed(broken)}
           trigger={null}
-          style={{ borderInlineEnd: `1px solid ${token.colorBorderSecondary}` }}
+          style={{
+            borderInlineEnd: `1px solid ${token.colorBorderSecondary}`,
+            position: 'sticky',
+            top: 0,
+            alignSelf: 'flex-start',
+            height: '100vh',
+            overflowY: 'auto',
+          }}
         >
           <div
             style={{
@@ -271,6 +447,7 @@ function AppLayout() {
           >
             <span
               aria-hidden
+              className="sms-logo-mark"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -278,7 +455,6 @@ function AppLayout() {
                 width: 36,
                 height: 36,
                 borderRadius: token.borderRadius,
-                background: token.colorPrimary,
                 color: '#fff',
                 fontWeight: 700,
               }}
@@ -293,6 +469,8 @@ function AppLayout() {
             data-testid="main-nav"
             mode="inline"
             selectedKeys={[selectedKey]}
+            openKeys={openKeys}
+            onOpenChange={setOpenKeys}
             items={menuItems}
             onClick={({ key }) => navigate(key)}
             style={{ border: 'none', paddingInline: token.paddingXS }}
@@ -323,9 +501,7 @@ function AppLayout() {
             />
             <div style={{ flex: 1 }} />
             <Space size="large" align="center">
-              <Badge dot color={token.colorPrimary}>
-                <BellOutlined style={{ fontSize: 18, color: token.colorTextSecondary }} />
-              </Badge>
+              <NotificationBell />
               <Space size="small" align="center">
                 <Avatar style={{ background: token.colorPrimary }}>{initials || <UserOutlined />}</Avatar>
                 {user?.name && (
@@ -345,7 +521,9 @@ function AppLayout() {
             </Space>
           </Header>
           <Content style={{ padding: token.paddingLG }}>
-            <Outlet />
+            <div key={location.pathname} className="sms-page">
+              <Outlet />
+            </div>
           </Content>
         </Layout>
       </Layout>

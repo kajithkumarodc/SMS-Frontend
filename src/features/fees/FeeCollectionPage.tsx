@@ -115,7 +115,7 @@ function FeeCollectionPage() {
   return (
     <div style={{ maxWidth: 1040, width: '100%', margin: '0 auto' }}>
       <Typography.Title level={2} style={{ marginTop: 0 }}>
-        Fee Collection
+        Collect Fees
       </Typography.Title>
       <Typography.Text type="secondary">Search a student to view their fee statement and collect payments.</Typography.Text>
 

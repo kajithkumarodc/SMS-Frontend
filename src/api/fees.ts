@@ -5,7 +5,7 @@ export type InvoiceStatus = 'PENDING' | 'PARTIALLY_PAID' | 'PAID' | 'FAILED';
 
 export type FeeFrequency = 'ONE_TIME' | 'MONTHLY' | 'QUARTERLY' | 'HALF_YEARLY' | 'ANNUAL';
 
-export type PaymentMethod = 'CASH' | 'BANK_TRANSFER' | 'CHEQUE' | 'ONLINE' | 'OTHER';
+export type PaymentMethod = 'CASH' | 'CHEQUE' | 'DD' | 'BANK_TRANSFER' | 'UPI' | 'CARD' | 'ONLINE' | 'OTHER';
 /** Methods selectable when manually collecting a payment — excludes ONLINE (Razorpay-only). */
 export const MANUAL_PAYMENT_METHODS: PaymentMethod[] = ['CASH', 'BANK_TRANSFER', 'CHEQUE', 'OTHER'];
 
@@ -17,8 +17,14 @@ export type FeeType = {
   active: boolean;
 };
 
-export async function fetchFeeTypes(): Promise<FeeType[]> {
-  const { data } = await api.get<FeeType[]>('/v1/fee-types');
+export async function fetchFeeTypes(includeInactive = false): Promise<FeeType[]> {
+  const { data } = await api.get<FeeType[]>('/v1/fee-types', { params: includeInactive ? { includeInactive } : undefined });
+  return data;
+}
+
+/** Rename and/or (de)activate a fee type. Types are never deleted: old fee lines keep their name. */
+export async function updateFeeType(id: string, input: { name: string; active?: boolean }): Promise<FeeType> {
+  const { data } = await api.put<FeeType>(`/v1/fee-types/${id}`, input);
   return data;
 }
 
@@ -37,6 +43,8 @@ export type FeeStructureItem = {
   feeTypeName: string | null;
   amount: number;
   sequenceOrder: number;
+  /** YYYY-MM-DD; null = the structure's due date. */
+  dueDate: string | null;
 };
 
 export type FeeStructure = {
@@ -52,9 +60,17 @@ export type FeeStructure = {
   status: 'ACTIVE' | 'INACTIVE';
   items: FeeStructureItem[];
   createdAt: string;
+  /** Null = the same fees for every medium. */
+  mediumId: string | null;
+  /** How many students have been billed for this structure. */
+  billedCount: number;
 };
 
-export async function fetchFeeStructures(params?: { classId?: string; academicYear?: string }): Promise<FeeStructure[]> {
+export async function fetchFeeStructures(params?: {
+  classId?: string;
+  academicYear?: string;
+  mediumId?: string;
+}): Promise<FeeStructure[]> {
   const { data } = await api.get<FeeStructure[]>('/v1/fee-structures', { params });
   return data;
 }
@@ -64,6 +80,7 @@ export type LineItemInput = {
   label?: string;
   feeTypeId?: string;
   amount: number;
+  dueDate?: string | null;
 };
 
 export type CreateFeeStructureInput = {
@@ -76,11 +93,34 @@ export type CreateFeeStructureInput = {
   frequency?: FeeFrequency;
   lateFeeAmount?: number;
   items?: LineItemInput[];
+  mediumId?: string | null;
 };
 
 export async function createFeeStructure(input: CreateFeeStructureInput): Promise<FeeStructure> {
   const { data } = await api.post<FeeStructure>('/v1/fee-structures', input);
   return data;
+}
+
+export type UpdateFeeStructureResult = { structure: FeeStructure; adjustedInvoices: number; skipped: string[] };
+
+/**
+ * Edit a fee structure; its fee lines are replaced by `items`. Bills already raised keep their amount unless
+ * `applyToExisting` is set: then every unpaid bill moves by the same difference (recorded as an adjustment).
+ */
+export async function updateFeeStructure(
+  id: string,
+  input: CreateFeeStructureInput,
+  applyToExisting = false,
+): Promise<UpdateFeeStructureResult> {
+  const { data } = await api.put<UpdateFeeStructureResult>(`/v1/fee-structures/${id}`, input, {
+    params: applyToExisting ? { applyToExisting } : undefined,
+  });
+  return data;
+}
+
+/** 409 once any student has been billed for it. */
+export async function deleteFeeStructure(id: string): Promise<void> {
+  await api.delete(`/v1/fee-structures/${id}`);
 }
 
 // --- Discounts ----------------------------------------------------------
@@ -155,6 +195,11 @@ export async function fetchStudentInvoices(studentId: string): Promise<Invoice[]
 export type CreateInvoiceInput = {
   studentId: string;
   feeStructureId: string;
+  /** Admission-time adjustment of the template total for this student (recorded with the reason). */
+  amount?: number;
+  adjustmentReason?: string;
+  /** Per-student fee lines (fee type x term) when the template was adjusted at admission. */
+  lines?: { label: string; feeTypeId?: string; category: string; dueDate: string; amount: number }[];
 };
 
 /** Generate a PENDING invoice for a student against a fee structure. 409 if a duplicate. */
@@ -304,5 +349,130 @@ export async function startInvoiceCheckout(invoiceId: string): Promise<CheckoutR
  */
 export async function simulateInvoicePayment(invoiceId: string): Promise<Invoice> {
   const { data } = await api.post<Invoice>(`/v1/dev/invoices/${invoiceId}/simulate-payment-success`);
+  return data;
+}
+
+// --- Student Fees (line-by-line collection) ---------------------------------------------------------------------
+
+/** Payment modes offered when collecting fees, in Smart School's order. */
+export const COLLECT_METHODS: { value: PaymentMethod; label: string }[] = [
+  { value: 'CASH', label: 'Cash' },
+  { value: 'CHEQUE', label: 'Cheque' },
+  { value: 'DD', label: 'DD' },
+  { value: 'BANK_TRANSFER', label: 'Bank Transfer' },
+  { value: 'UPI', label: 'UPI' },
+  { value: 'CARD', label: 'Card' },
+];
+
+export const METHOD_LABEL: Record<string, string> = {
+  CASH: 'Cash',
+  CHEQUE: 'Cheque',
+  DD: 'DD',
+  BANK_TRANSFER: 'Bank Transfer',
+  UPI: 'UPI',
+  CARD: 'Card',
+  ONLINE: 'Online',
+  OTHER: 'Other',
+};
+
+export type FeeLinePayment = {
+  paymentId: string;
+  /** e.g. RCPT-000123/1 -- receipt number / position on the receipt. */
+  paymentNumber: string;
+  receiptNumber: string;
+  method: PaymentMethod;
+  paymentDate: string;
+  amount: number;
+  fine: number;
+  collectionId: string | null;
+  referenceNumber: string | null;
+  notes: string | null;
+  reversed: boolean;
+};
+
+export type FeeLineStatus = 'PAID' | 'PARTIAL' | 'UNPAID';
+
+export type FeeLine = {
+  lineId: string;
+  invoiceId: string;
+  feeGroup: string;
+  label: string;
+  /** TERM_1..TERM_4 or another category. */
+  term: string;
+  dueDate: string;
+  amount: number;
+  discount: number;
+  fine: number;
+  paid: number;
+  balance: number;
+  status: FeeLineStatus;
+  overdue: boolean;
+  payments: FeeLinePayment[];
+};
+
+export type StudentFeeGroup = {
+  invoiceId: string;
+  feeStructureId: string;
+  name: string;
+  academicYear: string | null;
+  amount: number;
+  discount: number;
+  fine: number;
+  paid: number;
+  balance: number;
+  status: string;
+};
+
+export type StudentFees = {
+  studentId: string;
+  groups: StudentFeeGroup[];
+  lines: FeeLine[];
+  totals: { amount: number; discount: number; fine: number; paid: number; balance: number };
+};
+
+export async function fetchStudentFees(studentId: string): Promise<StudentFees> {
+  const { data } = await api.get<StudentFees>(`/v1/students/${studentId}/fees`);
+  return data;
+}
+
+export type CollectFeesInput = {
+  paymentDate: string;
+  method: PaymentMethod;
+  referenceNumber?: string;
+  notes?: string;
+  lines: { invoiceLineId: string; amount: number; fine: number }[];
+};
+
+export type CollectFeesResult = { collectionId: string; receiptNumbers: string[]; total: number };
+
+export async function collectFees(studentId: string, input: CollectFeesInput): Promise<CollectFeesResult> {
+  const { data } = await api.post<CollectFeesResult>(`/v1/students/${studentId}/fee-collections`, input);
+  return data;
+}
+
+export type CollectionReceipt = {
+  collectionId: string;
+  receiptNumbers: string[];
+  paymentDate: string;
+  method: PaymentMethod;
+  referenceNumber: string | null;
+  notes: string | null;
+  collectedBy: string | null;
+  schoolName: string | null;
+  studentId: string;
+  studentName: string;
+  admissionNumber: string;
+  className: string | null;
+  sectionName: string | null;
+  fatherName: string | null;
+  lines: { feeGroup: string; label: string; term: string; dueDate: string; amount: number; fine: number; balanceAfter: number | null }[];
+  totalAmount: number;
+  totalFine: number;
+  total: number;
+  reversed: boolean;
+};
+
+export async function fetchCollectionReceipt(collectionId: string): Promise<CollectionReceipt> {
+  const { data } = await api.get<CollectionReceipt>(`/v1/fee-collections/${collectionId}`);
   return data;
 }

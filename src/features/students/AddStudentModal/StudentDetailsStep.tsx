@@ -3,6 +3,7 @@ import { Controller, type Control, type FieldErrors, type UseFormSetValue } from
 import { Alert, DatePicker, Form, Input, Select, Typography, theme } from 'antd';
 import dayjs from 'dayjs';
 import type { SchoolClass } from '../../../api/classes';
+import { defaultSection, namedSections } from '../../classes/sectionLookup';
 import { BLOOD_GROUPS, GENDER_OPTIONS, type FormValues } from './schema';
 
 const { Text } = Typography;
@@ -13,6 +14,8 @@ type Props = {
   setValue: UseFormSetValue<FormValues>;
   schoolOptions: { value: string; label: string }[];
   schoolsLoading: boolean;
+  /** True when there is only one school: it's selected automatically, so the picker is hidden. */
+  hideSchool: boolean;
   classes: SchoolClass[];
   selectedSchoolId: string;
   selectedClassId: string;
@@ -27,6 +30,7 @@ function StudentDetailsStep({
   setValue,
   schoolOptions,
   schoolsLoading,
+  hideSchool,
   classes,
   selectedSchoolId,
   selectedClassId,
@@ -38,9 +42,10 @@ function StudentDetailsStep({
 
   const classesForSchool = classes.filter((cls) => cls.schoolId === selectedSchoolId);
   const classOptions = classesForSchool.map((cls) => ({ value: cls.id, label: cls.name }));
-  const sectionOptions = (classesForSchool.find((cls) => cls.id === selectedClassId)?.sections ?? []).map(
-    (section) => ({ value: section.id, label: section.name }),
-  );
+  const selectedClass = classesForSchool.find((cls) => cls.id === selectedClassId);
+  const sectionOptions = namedSections(selectedClass).map((section) => ({ value: section.id, label: section.name }));
+  // A class without sections (e.g. LKG) takes students directly, through its hidden default section.
+  const wholeClass = defaultSection(selectedClass);
 
   const gridStyle: CSSProperties = {
     display: 'grid',
@@ -51,6 +56,7 @@ function StudentDetailsStep({
 
   return (
     <div>
+      {!hideSchool && (
       <Controller
         control={control}
         name="schoolId"
@@ -78,6 +84,7 @@ function StudentDetailsStep({
           </Form.Item>
         )}
       />
+      )}
 
       <div style={gridStyle}>
         <Controller
@@ -240,7 +247,8 @@ function StudentDetailsStep({
                 optionFilterProp="label"
                 onChange={(value) => {
                   field.onChange(value);
-                  setValue('sectionId', '');
+                  const whole = defaultSection(classesForSchool.find((cls) => cls.id === value));
+                  setValue('sectionId', whole?.id ?? '', { shouldValidate: Boolean(whole) });
                 }}
               />
             )}
@@ -248,7 +256,7 @@ function StudentDetailsStep({
         </Form.Item>
         <Form.Item
           label="Section"
-          required
+          required={!wholeClass}
           validateStatus={errors.sectionId ? 'error' : undefined}
           help={errors.sectionId?.message}
         >
@@ -258,8 +266,11 @@ function StudentDetailsStep({
             render={({ field }) => (
               <Select
                 {...field}
-                placeholder={selectedClassId ? 'Select a section' : 'Select a class first'}
-                disabled={!selectedClassId}
+                value={wholeClass ? undefined : field.value || undefined}
+                placeholder={
+                  !selectedClassId ? 'Select a class first' : wholeClass ? 'Whole class (no sections)' : 'Select a section'
+                }
+                disabled={!selectedClassId || Boolean(wholeClass)}
                 options={sectionOptions}
                 showSearch
                 optionFilterProp="label"

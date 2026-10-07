@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
+import { useSoleSchool } from '../../hooks/useSoleSchool';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -70,9 +71,14 @@ function ConvertEnquiryModal({ enquiry, onClose, onConverted }: Props) {
     control,
     handleSubmit,
     reset,
+    setValue: setFormValue,
     setError,
     formState: { errors },
   } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: EMPTY, mode: 'onTouched' });
+  // One school only (V38): fill it in automatically and hide the picker.
+  const soleSchoolId = useSoleSchool(schoolsQuery.data, useWatch({ control, name: 'schoolId' }), (id) =>
+    setFormValue('schoolId', id),
+  );
 
   useEffect(() => {
     if (open) reset(EMPTY);
@@ -144,6 +150,7 @@ function ConvertEnquiryModal({ enquiry, onClose, onConverted }: Props) {
           </Descriptions>
 
           <Form layout="vertical" requiredMark="optional" onFinish={submit}>
+            {!soleSchoolId && (
             <Controller
               control={control}
               name="schoolId"
@@ -162,6 +169,7 @@ function ConvertEnquiryModal({ enquiry, onClose, onConverted }: Props) {
                 </Form.Item>
               )}
             />
+            )}
             <Controller
               control={control}
               name="admissionNumber"

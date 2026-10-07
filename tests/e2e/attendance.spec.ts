@@ -8,7 +8,8 @@ test('teacher marks a student present; the count updates and the mark persists o
   await page.getByRole('menuitem', { name: 'Attendance' }).click();
   await expect(page.getByRole('heading', { name: 'Attendance', level: 2 })).toBeVisible();
 
-  await selectOption(page, 'attendance-section-select', DEMO.sectionLabel);
+  await selectOption(page, 'attendance-class-select', DEMO.className);
+  await selectOption(page, 'attendance-section-select', DEMO.sectionName);
 
   // Roster loads with the section's one enrolled student.
   await expect(page.getByText(DEMO.studentName)).toBeVisible();

@@ -5,6 +5,8 @@ export type Section = {
   id: string;
   classId: string;
   name: string;
+  /** The hidden whole-class section of a class that has no real sections -- show the class name only. */
+  isDefault: boolean;
 };
 
 export type SchoolClass = {
@@ -88,4 +90,22 @@ export async function fetchClassSubjects(classId: string): Promise<Subject[]> {
 export async function assignClassSubject(classId: string, subjectId: string): Promise<Subject> {
   const { data } = await api.post<Subject>(`/v1/classes/${classId}/subjects`, { subjectId });
   return data;
+}
+
+/** Renames a section; the class and its students are untouched. 409 -> DuplicateNameError. */
+export async function renameSection(classId: string, sectionId: string, name: string): Promise<Section> {
+  try {
+    const { data } = await api.put<Section>(`/v1/classes/${classId}/sections/${sectionId}`, { name });
+    return data;
+  } catch (error) {
+    if ((error as AxiosError).response?.status === 409) {
+      throw new DuplicateNameError('A section with this name already exists in this class');
+    }
+    throw error;
+  }
+}
+
+/** Deletes an empty section. Rejects with the server's message (409) if students are still in it. */
+export async function deleteSection(classId: string, sectionId: string): Promise<void> {
+  await api.delete(`/v1/classes/${classId}/sections/${sectionId}`);
 }

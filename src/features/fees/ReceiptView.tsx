@@ -62,7 +62,7 @@ function ReceiptView({ paymentId, onClose, fetcher = fetchReceipt }: Props) {
               {receipt.studentName} ({receipt.admissionNumber})
             </Descriptions.Item>
             <Descriptions.Item label="Class / Section">
-              {receipt.className ? `${receipt.className} · ${receipt.sectionName ?? ''}` : 'Not assigned'}
+              {receipt.className ? (receipt.sectionName ? `${receipt.className} · ${receipt.sectionName}` : receipt.className) : 'Not assigned'}
             </Descriptions.Item>
             <Descriptions.Item label="Academic session">{receipt.academicYear ?? '—'}</Descriptions.Item>
             <Descriptions.Item label="Fee">{receipt.feeStructureName ?? '—'}</Descriptions.Item>
