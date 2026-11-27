@@ -33,20 +33,20 @@ import { formatAmount } from '../reports/format';
 const { Text } = Typography;
 
 const C = {
-  violet: '#17376B',
+  violet: '#2563EB',
   indigo: '#3B82F6',
-  sky: '#0EA5C6',
+  sky: '#0EA5E9',
   teal: '#14B8A6',
-  green: '#22C55E',
+  green: '#059669',
   amber: '#F59E0B',
   orange: '#F97316',
-  rose: '#F43F5E',
+  rose: '#E11D48',
   slate: '#94A3B8',
-  ink: '#0F2547',
-  muted: '#5B6F8F',
-  line: 'rgba(23,55,107,0.08)',
+  ink: 'var(--sms-ink)',
+  muted: 'var(--sms-muted)',
+  line: 'var(--sms-line)',
 };
-const PIE = ['#17376B', '#0EA5C6', '#14B8A6', '#3B82F6', '#F59E0B', '#F43F5E', '#8B5CF6', '#22C55E'];
+const PIE = ['#2563EB', '#14B8A6', '#F59E0B', '#0EA5E9', '#1D4ED8', '#F43F5E', '#8B5CF6', '#059669'];
 
 const CSS = `
 @keyframes sad-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
@@ -54,12 +54,12 @@ const CSS = `
 @keyframes sad-shimmer { from { background-position: 0 0; } to { background-position: 200% 0; } }
 .sad-root { display: grid; gap: 20px; }
 .sad-in { opacity: 0; animation: sad-rise .6s cubic-bezier(.2,.7,.2,1) forwards; animation-delay: var(--d, 0ms); }
-.sad-card { background: rgba(255,255,255,.72); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,.9); border-radius: 22px; padding: 20px; position: relative;
-  box-shadow: 0 14px 36px -20px rgba(23,55,107,.28);
+.sad-card { background: var(--sms-glass); backdrop-filter: blur(16px); border: 1px solid var(--sms-glass-border); border-radius: 18px; padding: 20px; position: relative;
+  box-shadow: var(--sms-shadow); color: var(--sms-ink);
   transition: transform .25s ease, box-shadow .25s ease; }
-.sad-card:hover { transform: translateY(-3px); border-color: rgba(14,165,198,.45); box-shadow: 0 24px 46px -22px rgba(23,55,107,.4); }
-.sad-hero { position: relative; overflow: hidden; border-radius: 22px; padding: 28px 30px; color: #fff;
-  background: linear-gradient(125deg, #0F2A57 0%, #17376B 40%, #1D6FA8 80%, #14B8A6 135%); }
+.sad-card:hover { transform: translateY(-3px); border-color: rgba(37,99,235,.4); box-shadow: 0 24px 46px -22px rgba(37,99,235,.4); }
+.sad-hero { position: relative; overflow: hidden; border-radius: 20px; padding: 28px 30px; color: #fff;
+  background: linear-gradient(125deg, #1E3A8A 0%, #2563EB 46%, #14B8A6 100%); }
 .sad-hero::before, .sad-hero::after { content: ''; position: absolute; border-radius: 50%; background: rgba(255,255,255,.12);
   animation: sad-float 7s ease-in-out infinite; }
 .sad-hero::before { width: 220px; height: 220px; right: -50px; top: -80px; }
@@ -71,13 +71,13 @@ const CSS = `
 .sad-grid-4 { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 .sad-grid-3 { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
 .sad-split { display: grid; gap: 16px; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); }
-.sad-bar-track { height: 8px; border-radius: 99px; background: rgba(23,55,107,.08); overflow: hidden; }
+.sad-bar-track { height: 8px; border-radius: 99px; background: color-mix(in srgb, var(--sms-primary) 14%, transparent); overflow: hidden; }
 .sad-bar-fill { height: 100%; border-radius: 99px; width: 0; transition: width 1.1s cubic-bezier(.2,.7,.2,1); }
 .sad-row-hover { padding: 8px 10px; margin: 0 -10px; border-radius: 10px; transition: background .2s; }
-.sad-row-hover:hover { background: rgba(14,165,198,.1); }
+.sad-row-hover:hover { background: color-mix(in srgb, var(--sms-secondary) 16%, transparent); }
 .sad-ring circle.sad-ring-fg { transition: stroke-dashoffset 1.2s cubic-bezier(.2,.7,.2,1); }
-.sad-title { font-size: 15px; font-weight: 600; color: ${C.ink}; margin: 0 0 14px; display: flex; align-items: center; gap: 8px; }
-.sad-title i { width: 8px; height: 8px; border-radius: 50%; background: ${C.violet}; display: inline-block; }
+.sad-title { font-size: 16px; font-weight: 700; color: var(--sms-ink); margin: 0 0 14px; display: flex; align-items: center; gap: 8px; line-height: 1.5; }
+.sad-title i { width: 8px; height: 8px; border-radius: 50%; background: #2563EB; display: inline-block; }
 @media (max-width: 900px) { .sad-split { grid-template-columns: minmax(0, 1fr); } .sad-hero { padding: 22px 20px; } }
 @media (prefers-reduced-motion: reduce) {
   .sad-in { animation: none; opacity: 1; }
@@ -236,7 +236,7 @@ function ChartTooltip({ active, payload, label, prefix }: {
 }) {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: '#fff', border: `1px solid ${C.line}`, borderRadius: 12, padding: '10px 12px',
+    <div style={{ background: 'var(--sms-glass)', border: `1px solid ${C.line}`, borderRadius: 12, padding: '10px 12px', color: 'var(--sms-ink)',
       boxShadow: '0 10px 24px -8px rgba(30,27,75,.25)', fontSize: 12 }}>
       <div style={{ color: C.muted, marginBottom: 4 }}>{prefix}{label}</div>
       {payload.map((p) => (
