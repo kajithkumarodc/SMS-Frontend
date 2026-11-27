@@ -38,6 +38,7 @@ import { useAuthStore } from '../store/authStore';
 import { hasAnyRole, hasPermission, hasRole, ROLE } from '../lib/roles';
 import { ChangePasswordModal } from '../features/settings';
 import NotificationBell from './NotificationBell';
+import ThemeToggle from '../theme/ThemeToggle';
 
 const { Sider, Header, Content } = Layout;
 const { Text } = Typography;
@@ -411,7 +412,8 @@ function AppLayout() {
     .join('');
 
   return (
-    <div style={{ minHeight: '100vh', padding: token.marginLG, background: token.colorBgLayout }}>
+    <div className="sms-shell" style={{ minHeight: '100vh', padding: token.marginLG, background: 'transparent' }}>
+      <span className="sms-orb" aria-hidden />
       <Layout
         style={{
           minHeight: `calc(100vh - ${token.marginLG * 2}px)`,
@@ -461,9 +463,14 @@ function AppLayout() {
             >
               SM
             </span>
-            <Text strong style={{ fontSize: token.fontSizeLG, letterSpacing: 0.2 }}>
-              School Manager
-            </Text>
+            {!collapsed && (
+              <div>
+                <div className="sms-brand-kicker">Campus</div>
+                <Text strong style={{ fontSize: token.fontSizeLG, letterSpacing: 0.2, color: token.colorText }}>
+                  School Manager
+                </Text>
+              </div>
+            )}
           </div>
           <Menu
             data-testid="main-nav"
@@ -494,18 +501,20 @@ function AppLayout() {
               onClick={() => setCollapsed(!collapsed)}
             />
             <Input
+              className="sms-header-search"
               prefix={<SearchOutlined style={{ color: token.colorTextTertiary }} />}
-              placeholder="Search"
-              style={{ maxWidth: 320, background: token.colorFillTertiary }}
+              placeholder="Search students, staff, classes"
+              style={{ maxWidth: 360, background: token.colorFillTertiary }}
               variant="filled"
             />
             <div style={{ flex: 1 }} />
-            <Space size="large" align="center">
+            <Space size="middle" align="center" wrap>
+              <ThemeToggle />
               <NotificationBell />
               <Space size="small" align="center">
                 <Avatar style={{ background: token.colorPrimary }}>{initials || <UserOutlined />}</Avatar>
                 {user?.name && (
-                  <div style={{ lineHeight: 1.2 }}>
+                  <div className="sms-user-meta" style={{ lineHeight: 1.45 }}>
                     <div style={{ fontWeight: 600 }}>{user.name}</div>
                     {primaryRole && (
                       <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
